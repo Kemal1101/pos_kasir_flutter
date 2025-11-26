@@ -23,12 +23,5 @@ flutter:
   uses-material-design: true
 
   assets:
-    - assets/hoodie1.png
-    - assets/hoodie2.png
-    - assets/hoodie3.png
-    - assets/samba.png
-    - assets/nb530.png
-    - assets/scarf1.png
-    - assets/scarf2.png
-    - assets/user.png
+    - assets/
 
