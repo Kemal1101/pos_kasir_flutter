@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../models/cart_item.dart';
 import '../models/product.dart';
 import '../providers/cart_provider.dart';
 import '../theme.dart';
@@ -66,8 +65,8 @@ class _ProductDetailModalState extends State<ProductDetailModal> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    widget.product.price,
-                    style: TextStyle(
+                    'Rp ${widget.product.price.toStringAsFixed(0)}',
+                    style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
                       color: AppTheme.primary,
@@ -144,14 +143,11 @@ class _ProductDetailModalState extends State<ProductDetailModal> {
                 child: ElevatedButton.icon(
                   onPressed: () {
                     final cartProvider = context.read<CartProvider>();
-                    final cartItem = CartItem(
-                      name: widget.product.name,
-                      description: 'Product',
-                      price: widget.product.numericPrice,
+                    cartProvider.addProductToCart(
+                      widget.product,
+                      'Default', // Size/Color variant
                       quantity: quantity,
-                      isSelected: true,
                     );
-                    cartProvider.addItem(cartItem);
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(

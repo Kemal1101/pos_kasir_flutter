@@ -120,7 +120,7 @@ class _CartPageState extends State<CartPage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              item.name,
+                              item.product.name,
                               style: const TextStyle(
                                 fontWeight: FontWeight.w600,
                                 fontSize: 14,
@@ -130,7 +130,7 @@ class _CartPageState extends State<CartPage> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'Rp ${item.price.toStringAsFixed(0)}',
+                              'Rp ${item.product.price.toStringAsFixed(0)}',
                               style: TextStyle(
                                 color: AppTheme.primary,
                                 fontWeight: FontWeight.w700,
@@ -202,8 +202,23 @@ class _CartPageState extends State<CartPage> {
                       ),
                       const SizedBox(width: 8),
                       IconButton(
-                        onPressed: () {
-                          cartProvider.cartItems.removeAt(index);
+                        onPressed: () async {
+                          final item = cartProvider.cartItems[index];
+                          if (item.saleItemId != null) {
+                            // Remove via API
+                            final success = await cartProvider.removeItemFromSale(item.saleItemId!);
+                            if (!success && context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(cartProvider.errorMessage ?? 'Gagal menghapus item'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          } else {
+                            // Fallback: remove locally
+                            cartProvider.cartItems.removeAt(index);
+                          }
                         },
                         icon: const Icon(Icons.delete_outline),
                         color: Colors.red,
@@ -255,7 +270,7 @@ class _CartPageState extends State<CartPage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                item.name,
+                                item.product.name,
                                 style: const TextStyle(
                                   fontWeight: FontWeight.w600,
                                   fontSize: 13,
@@ -452,7 +467,7 @@ class _CartPageState extends State<CartPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            item.name,
+                            item.product.name,
                             style: const TextStyle(
                               fontWeight: FontWeight.w600,
                               fontSize: 13,

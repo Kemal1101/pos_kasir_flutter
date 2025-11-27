@@ -26,14 +26,14 @@ class ProductImageWidget extends StatelessWidget {
   }
 
   IconData _getIconForProduct() {
-    switch (product.iconType) {
-      case IconType.shirt:
+    // Use category to determine icon
+    switch (product.category.toLowerCase()) {
+      case 'hoodie':
         return Icons.checkroom;
-      case IconType.shoes:
-        return Icons.shoes;
-      case IconType.scarf:
+      case 'sneaker':
+        return Icons.directions_run;
+      case 'scarf':
         return Icons.checkroom;
-      case IconType.product:
       default:
         return Icons.shopping_bag;
     }
