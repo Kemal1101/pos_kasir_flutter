@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../widgets/bottom_nav_bar.dart';
+import '../providers/cart_provider.dart';
+import '../services/auth_service.dart';
 import 'catalog_screen.dart';
 import 'payment_screen.dart'; // Digunakan jika navigasi terjadi
 
@@ -34,10 +37,37 @@ class _HomeScreenState extends State<HomeScreen> {
               child: const Text('Batal'),
             ),
             TextButton(
-              onPressed: () {
-                // Tambahkan logika logout aplikasi di sini
-                print('Logout berhasil!');
+              onPressed: () async {
+                // Tutup dialog
                 Navigator.of(ctx).pop();
+                
+                // Tampilkan loading
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (context) => const Center(
+                    child: CircularProgressIndicator(),
+                  ),
+                );
+                
+                // Logout dari AuthService (hapus token)
+                final authService = AuthService();
+                await authService.logout();
+                
+                // Clear cart
+                if (mounted) {
+                  final cartProvider = Provider.of<CartProvider>(context, listen: false);
+                  cartProvider.clearCart();
+                }
+                
+                // Tutup loading dan kembali ke login
+                if (mounted) {
+                  Navigator.of(context).pop(); // Tutup loading
+                  Navigator.of(context).pushNamedAndRemoveUntil(
+                    '/login',
+                    (route) => false,
+                  );
+                }
               },
               child: const Text('Logout', style: TextStyle(color: Colors.red)),
             ),
@@ -65,13 +95,60 @@ class _HomeScreenState extends State<HomeScreen> {
 
   AppBar _buildAppBar() {
     return AppBar(
-      title: const Text('SuperCashier', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+      flexibleSpace: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+            colors: [Color(0xFF7B4FD8), Color(0xFFA678D8)],
+          ),
+        ),
+      ),
+      title: RichText(
+        text: const TextSpan(
+          children: [
+            TextSpan(
+              text: 'Super',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            TextSpan(
+              text: 'Cashier',
+              style: TextStyle(
+                color: Color(0xFFFFD700),
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      ),
       actions: <Widget>[
-        const CircleAvatar(backgroundColor: Color(0xFFE0C1F8), child: Icon(Icons.person, color: Color(0xFF673AB7))),
-        const Center(child: Padding(padding: EdgeInsets.symmetric(horizontal: 8.0), child: Text('Dewi, Cashier', style: TextStyle(color: Colors.black54, fontSize: 14)))),
-        IconButton(icon: const Icon(Icons.notifications_none, color: Colors.deepPurple), onPressed: () {}),
+        const CircleAvatar(
+          backgroundColor: Colors.white,
+          radius: 18,
+          child: Icon(Icons.person, color: Color(0xFF7B4FD8), size: 22),
+        ),
+        const SizedBox(width: 8),
+        const Center(
+          child: Text(
+            'Dewi, Cashier',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        IconButton(
+          icon: const Icon(Icons.notifications_outlined, color: Colors.white, size: 24),
+          onPressed: () {},
+        ),
       ],
-      bottom: PreferredSize(preferredSize: const Size.fromHeight(1.0), child: Container(color: Colors.grey[200], height: 1.0)),
     );
   }
 }

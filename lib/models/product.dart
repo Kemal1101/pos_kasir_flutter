@@ -29,14 +29,22 @@ class Product {
 
   factory Product.fromJson(Map<String, dynamic> json) {
     return Product(
-      productId: json['product_id'] as int,
-      categoriesId: json['categories_id'] as int?,
+      productId: json['product_id'] is int 
+          ? json['product_id'] 
+          : int.parse(json['product_id'].toString()),
+      categoriesId: json['categories_id'] != null
+          ? (json['categories_id'] is int 
+              ? json['categories_id'] 
+              : int.parse(json['categories_id'].toString()))
+          : null,
       name: json['name'] as String,
       description: json['description'] as String?,
       costPrice: double.parse(json['cost_price'].toString()),
       sellingPrice: double.parse(json['selling_price'].toString()),
       productImages: json['product_images'] as String?,
-      stock: json['stock'] as int,
+      stock: json['stock'] is int 
+          ? json['stock'] 
+          : int.parse(json['stock'].toString()),
       barcode: json['barcode'] as String?,
     );
   }

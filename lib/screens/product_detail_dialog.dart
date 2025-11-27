@@ -86,12 +86,49 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
               Center(
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(12),
-                  child: Image.asset(
-                    'assets/${widget.product.imagePath}',
-                    height: 200,
-                    width: 200,
-                    fit: BoxFit.contain,
-                  ),
+                  child: widget.product.productImages != null && widget.product.productImages!.isNotEmpty
+                      ? Image.network(
+                          widget.product.productImages!,
+                          height: 200,
+                          width: 200,
+                          fit: BoxFit.cover,
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return SizedBox(
+                              height: 200,
+                              width: 200,
+                              child: Center(
+                                child: CircularProgressIndicator(
+                                  value: loadingProgress.expectedTotalBytes != null
+                                      ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                                      : null,
+                                ),
+                              ),
+                            );
+                          },
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              height: 200,
+                              width: 200,
+                              color: Colors.grey[200],
+                              child: Icon(
+                                Icons.image_not_supported,
+                                size: 80,
+                                color: Colors.grey[400],
+                              ),
+                            );
+                          },
+                        )
+                      : Container(
+                          height: 200,
+                          width: 200,
+                          color: Colors.grey[200],
+                          child: Icon(
+                            Icons.image,
+                            size: 80,
+                            color: Colors.grey[400],
+                          ),
+                        ),
                 ),
               ),
               const SizedBox(height: 24),

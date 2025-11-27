@@ -44,13 +44,40 @@ class _ProductDetailModalState extends State<ProductDetailModal> {
                   color: Colors.grey[200],
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Center(
-                  child: Icon(
-                    Icons.shopping_bag,
-                    size: 80,
-                    color: Colors.grey[400],
-                  ),
-                ),
+                child: widget.product.productImages != null && widget.product.productImages!.isNotEmpty
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.network(
+                          widget.product.productImages!,
+                          fit: BoxFit.cover,
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return Center(
+                              child: CircularProgressIndicator(
+                                value: loadingProgress.expectedTotalBytes != null
+                                    ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                                    : null,
+                              ),
+                            );
+                          },
+                          errorBuilder: (context, error, stackTrace) {
+                            return Center(
+                              child: Icon(
+                                Icons.shopping_bag,
+                                size: 80,
+                                color: Colors.grey[400],
+                              ),
+                            );
+                          },
+                        ),
+                      )
+                    : Center(
+                        child: Icon(
+                          Icons.shopping_bag,
+                          size: 80,
+                          color: Colors.grey[400],
+                        ),
+                      ),
               ),
               const SizedBox(height: 20),
               Text(
