@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'providers/cart_provider.dart';
 import 'screens/home_screen.dart';
+import 'pages/login_page.dart';
+import 'pages/home_page.dart';
 
 void main() {
   // Pastikan Anda menambahkan gambar aset dan mendeklarasikannya di pubspec.yaml
@@ -20,15 +22,18 @@ class SuperCashierApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'SuperCashier POS',
+      title: 'SuperCashier POS', 
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        primarySwatch: Colors.deepPurple,
-        visualDensity: VisualDensity.adaptivePlatformDensity,
-        scaffoldBackgroundColor: Colors.grey[100],
-        appBarTheme: const AppBarTheme(backgroundColor: Colors.white, elevation: 0),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        useMaterial3: true,
+        // scaffoldBackgroundColor: Colors.grey[100], // Uncomment jika ingin background abu-abu
       ),
-      home: const HomeScreen(),
+      initialRoute: '/login', 
+      routes: {
+        '/login': (context) => const LoginPage(),
+        '/home': (context) => const HomePage(), 
+      },
     );
   }
 }
