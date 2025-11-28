@@ -23,21 +23,27 @@ class _PaymentScreenState extends State<PaymentScreen> {
   Widget build(BuildContext context) {
     final cartProvider = Provider.of<CartProvider>(context);
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        // Panel Kiri: Order Details
-        Expanded(
-          flex: 5,
-          child: _buildOrderDetailsPanel(cartProvider),
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Payment'),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 0,
+      ),
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            // Order Details Section
+            _buildOrderDetailsPanel(cartProvider),
+            
+            const Divider(height: 1, thickness: 1),
+            
+            // Payment Panel Section
+            _buildPaymentPanel(cartProvider),
+          ],
         ),
-        
-        // Panel Kanan: Payment Mode & Summary
-        Expanded(
-          flex: 4,
-          child: _buildPaymentPanel(cartProvider),
-        ),
-      ],
+      ),
     );
   }
   // --- Widget Builders: Order Details (Kiri) ---
@@ -45,10 +51,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
   Widget _buildOrderDetailsPanel(CartProvider cart) {
     return Container(
       padding: const EdgeInsets.all(16.0),
-      decoration: BoxDecoration(color: Colors.white, border: Border(right: BorderSide(color: Colors.grey[300]!, width: 1.0))),
-      child: ListView(
+      color: Colors.white,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          // ... (Customer Info Card)
+          // Customer Info Card
           _buildCustomerInfoCard(),
           const SizedBox(height: 24),
           const Text('Order Details', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
@@ -58,7 +65,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
           // Item List menggunakan data dari CartProvider
           ...cart.items.map((item) => _buildOrderItemRow(item)).toList(),
           const SizedBox(height: 24),
-          // ... (Discount Coupon Section)
+          // Discount Coupon Section
           _buildDiscountCouponSection(),
         ],
       ),
@@ -70,14 +77,92 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
   Widget _buildOrderItemRow(item) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12.0),
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(width: 50, child: Container(height: 40, width: 40, decoration: BoxDecoration(borderRadius: BorderRadius.circular(8), color: Colors.grey[200]))),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(item.product.name, style: const TextStyle(fontWeight: FontWeight.w600)), Text(item.sizeColor, style: TextStyle(color: Colors.grey[600], fontSize: 12))])),
-          SizedBox(width: 80, child: Text('x${item.quantity}', style: const TextStyle(fontWeight: FontWeight.w600))),
-          SizedBox(width: 100, child: Text(_formatCurrency(item.totalAmount), textAlign: TextAlign.right, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.deepPurple))),
+          Container(
+            height: 50,
+            width: 50,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              color: Colors.grey[200],
+            ),
+            child: item.product.productImages != null && item.product.productImages!.isNotEmpty
+                ? ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.network(
+                      item.product.productImages!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Icon(Icons.image, color: Colors.grey[400]);
+                      },
+                    ),
+                  )
+                : Icon(Icons.image, color: Colors.grey[400]),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.product.name,
+                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'x${item.quantity}',
+                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                _formatCurrency(item.totalAmount),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.deepPurple,
+                  fontSize: 14,
+                ),
+              ),
+              const SizedBox(height: 4),
+              InkWell(
+                onTap: () async {
+                  final cartProvider = context.read<CartProvider>();
+                  if (item.saleItemId != null) {
+                    await cartProvider.removeItemFromSale(item.saleItemId!);
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('${item.product.name} dihapus dari keranjang'),
+                          duration: const Duration(seconds: 2),
+                        ),
+                      );
+                    }
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: Colors.red[50],
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Icon(
+                    Icons.delete_outline,
+                    size: 18,
+                    color: Colors.red[400],
+                  ),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -102,14 +187,22 @@ class _PaymentScreenState extends State<PaymentScreen> {
   }
 
   Widget _buildOrderDetailsHeader() {
-    return const Padding(
-      padding: EdgeInsets.symmetric(vertical: 8.0),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
         children: [
-          SizedBox(width: 50, child: Text('ITEM', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.grey))),
-          Expanded(child: Text('DISH NAME', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.grey))),
-          SizedBox(width: 80, child: Text('QUANTITY', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.grey))),
-          SizedBox(width: 100, child: Text('AMOUNT', textAlign: TextAlign.right, style: TextStyle(fontWeight: FontWeight.w600, color: Colors.grey))),
+          const SizedBox(width: 62), // Image width + spacing
+          const Expanded(
+            child: Text(
+              'ITEM',
+              style: TextStyle(fontWeight: FontWeight.w600, color: Colors.grey, fontSize: 12),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            'AMOUNT',
+            style: TextStyle(fontWeight: FontWeight.w600, color: Colors.grey, fontSize: 12),
+          ),
         ],
       ),
     );
@@ -134,21 +227,21 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
   Widget _buildPaymentPanel(CartProvider cart) {
     return Container(
-      padding: const EdgeInsets.all(24.0),
+      padding: const EdgeInsets.all(16.0),
       color: Colors.white,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          const Text('Select Payment Mode', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          const Text('Select Payment Mode', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 16),
+          _buildPaymentOption(value: 0, title: 'Pay Using Card', subtitle: 'Complete the payment using credit or debit card'),
+          const SizedBox(height: 12),
+          _buildPaymentOption(value: 1, title: 'Pay on Cash', subtitle: 'Complete order payment using cash on hand'),
+          const SizedBox(height: 12),
+          _buildPaymentOption(value: 2, title: 'Pay Using QRIS/E-Wallet', subtitle: 'Ask customer to scan QR code'),
           const SizedBox(height: 24),
-          _buildPaymentOption(value: 0, title: 'Pay Using Card', subtitle: 'Complete the payment using credit or debit card, using swipe machine'),
-          const SizedBox(height: 16),
-          _buildPaymentOption(value: 1, title: 'Pay on Cash', subtitle: 'Complete order payment using cash on hand from customers easy adh simple'),
-          const SizedBox(height: 16),
-          _buildPaymentOption(value: 2, title: 'Pay Using QRIS/E-Wallet', subtitle: 'Ask customer to complete the payment using by scanning QR code or UPI id'),
-          const SizedBox(height: 40),
           _buildPaymentSummary(cart),
-          const SizedBox(height: 40),
+          const SizedBox(height: 24),
           _buildConfirmPaymentButton(cart),
         ],
       ),
@@ -160,15 +253,45 @@ class _PaymentScreenState extends State<PaymentScreen> {
     return InkWell(
       onTap: () {setState(() {_selectedPaymentMethod = value;});},
       child: Container(
-        padding: const EdgeInsets.all(16.0),
-        decoration: BoxDecoration(color: isSelected ? Colors.deepPurple[50] : Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: isSelected ? Colors.deepPurple : Colors.grey[300]!, width: isSelected ? 2.0 : 1.0)),
+        padding: const EdgeInsets.all(12.0),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.deepPurple[50] : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? Colors.deepPurple : Colors.grey[300]!,
+            width: isSelected ? 2.0 : 1.0,
+          ),
+        ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ignore: deprecated_member_use
-            Radio<int>(value: value, groupValue: _selectedPaymentMethod, onChanged: (int? newValue) {setState(() {_selectedPaymentMethod = newValue!;});}, activeColor: Colors.deepPurple),
-            const SizedBox(width: 8),
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)), const SizedBox(height: 4), Text(subtitle, style: TextStyle(color: Colors.grey[600], fontSize: 12))])),
+            Radio<int>(
+              value: value,
+              groupValue: _selectedPaymentMethod,
+              onChanged: (int? newValue) {
+                setState(() {_selectedPaymentMethod = newValue!;});
+              },
+              activeColor: Colors.deepPurple,
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: TextStyle(color: Colors.grey[600], fontSize: 11),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),
