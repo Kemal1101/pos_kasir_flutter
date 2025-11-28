@@ -21,10 +21,50 @@ class Product {
     this.description = '',
   });
 
+  // Compatibility getters
+  String get id => productId.toString();
+  double get price => sellingPrice;
+
+  factory Product.fromJson(Map<String, dynamic> json) {
+    return Product(
+      productId: json['product_id'] is int 
+          ? json['product_id'] 
+          : int.parse(json['product_id'].toString()),
+      categoriesId: json['categories_id'] != null
+          ? (json['categories_id'] is int 
+              ? json['categories_id'] 
+              : int.parse(json['categories_id'].toString()))
+          : null,
+      name: json['name'] as String,
+      category: json['category']?.toString() ?? 'Uncategorized',
+      costPrice: double.parse(json['cost_price'].toString()),
+      sellingPrice: double.parse(json['selling_price'].toString()),
+      productImages: json['product_images'] as String?,
+      stock: json['stock'] is int 
+          ? json['stock'] 
+          : int.parse(json['stock'].toString()),
+      description: json['description']?.toString() ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'product_id': productId,
+      'categories_id': categoriesId,
+      'name': name,
+      'category': category,
+      'cost_price': costPrice,
+      'selling_price': sellingPrice,
+      'product_images': productImages,
+      'stock': stock,
+      'description': description,
+    };
+  }
+
   // Daftar produk dari database
   static final List<Product> sampleProducts = [
     Product(
-      id: 'PRD001',
+      productId: 1,
       name: 'Air Mineral 600ml',
       category: 'Minuman',
       sellingPrice: 5000,
@@ -33,7 +73,7 @@ class Product {
       description: 'Air mineral kemasan 600ml',
     ),
     Product(
-      id: 'PRD002',
+      productId: 2,
       name: 'Indomie Goreng',
       category: 'Sembako',
       sellingPrice: 3500,
@@ -42,7 +82,7 @@ class Product {
       description: 'Mie instan rasa goreng',
     ),
     Product(
-      id: 'PRD003',
+      productId: 3,
       name: 'Gula Pasir 1kg',
       category: 'Sembako',
       sellingPrice: 15000,
@@ -51,7 +91,7 @@ class Product {
       description: 'Gula pasir putih 1kg',
     ),
     Product(
-      id: 'PRD004',
+      productId: 4,
       name: 'Minyak Goreng 1L',
       category: 'Sembako',
       sellingPrice: 20000,
@@ -60,7 +100,7 @@ class Product {
       description: 'Minyak goreng 1 liter',
     ),
     Product(
-      id: 'PRD005',
+      productId: 5,
       name: 'Deterjen 800g',
       category: 'Kebutuhan Rumah',
       sellingPrice: 17000,
@@ -69,7 +109,7 @@ class Product {
       description: 'Deterjen cuci 800g',
     ),
     Product(
-      id: 'PRD006',
+      productId: 6,
       name: 'Sabun Mandi 100g',
       category: 'Perawatan Pribadi',
       sellingPrice: 4000,
@@ -78,7 +118,7 @@ class Product {
       description: 'Sabun mandi 100g',
     ),
     Product(
-      id: 'PRD007',
+      productId: 7,
       name: 'Biskuit Coklat 150g',
       category: 'Snack',
       sellingPrice: 12000,
@@ -87,7 +127,7 @@ class Product {
       description: 'Biskuit coklat kemasan 150g',
     ),
     Product(
-      id: 'PRD008',
+      productId: 8,
       name: 'Hydro Coco',
       category: 'Minuman',
       sellingPrice: 8000,

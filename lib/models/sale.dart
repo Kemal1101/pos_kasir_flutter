@@ -25,9 +25,17 @@ class Sale {
 
   factory Sale.fromJson(Map<String, dynamic> json) {
     return Sale(
-      saleId: json['sale_id'] as int,
-      userId: json['user_id'] as int,
-      paymentId: json['payment_id'] as int?,
+      saleId: json['sale_id'] is int 
+          ? json['sale_id'] 
+          : int.parse(json['sale_id'].toString()),
+      userId: json['user_id'] is int 
+          ? json['user_id'] 
+          : int.parse(json['user_id'].toString()),
+      paymentId: json['payment_id'] != null
+          ? (json['payment_id'] is int 
+              ? json['payment_id'] 
+              : int.parse(json['payment_id'].toString()))
+          : null,
       subtotal: double.parse(json['subtotal'].toString()),
       discountAmount: double.parse(json['discount_amount'].toString()),
       taxAmount: double.parse(json['tax_amount'].toString()),
@@ -105,11 +113,21 @@ class SaleItem {
 
   factory SaleItem.fromJson(Map<String, dynamic> json) {
     return SaleItem(
-      saleItemId: json['sale_item_id'] as int?,
-      saleId: json['sale_id'] as int,
-      productId: json['product_id'] as int,
+      saleItemId: json['sale_item_id'] != null
+          ? (json['sale_item_id'] is int 
+              ? json['sale_item_id'] 
+              : int.parse(json['sale_item_id'].toString()))
+          : null,
+      saleId: json['sale_id'] is int 
+          ? json['sale_id'] 
+          : int.parse(json['sale_id'].toString()),
+      productId: json['product_id'] is int 
+          ? json['product_id'] 
+          : int.parse(json['product_id'].toString()),
       nameProduct: json['name_product'] as String,
-      quantity: json['quantity'] as int,
+      quantity: json['quantity'] is int 
+          ? json['quantity'] 
+          : int.parse(json['quantity'].toString()),
       discountAmount: double.parse(json['discount_amount'].toString()),
       subtotal: double.parse(json['subtotal'].toString()),
     );

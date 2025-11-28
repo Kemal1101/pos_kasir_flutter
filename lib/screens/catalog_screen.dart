@@ -362,7 +362,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
                   quantity = 1;
                 }
 
-                cart.addProductToCart(product, quantity: quantity);
+                cart.addProductToCart(product, 'Default', quantity: quantity);
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(

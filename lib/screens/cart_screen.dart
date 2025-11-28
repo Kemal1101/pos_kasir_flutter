@@ -196,18 +196,50 @@ class CartScreen extends StatelessWidget {
                             ],
                           ),
                         ),
-                        // Total price di kanan
-                        SizedBox(
-                          width: 80,
-                          child: Text(
-                            'Rp ${_formatCurrency(item.totalAmount)}',
-                            textAlign: TextAlign.right,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13,
-                              color: Color(0xFF673AB7),
+                        // Total price and delete button di kanan
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Rp ${_formatCurrency(item.totalAmount)}',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                                color: Color(0xFF673AB7),
+                              ),
                             ),
-                          ),
+                            const SizedBox(height: 8),
+                            InkWell(
+                              onTap: () async {
+                                if (item.saleItemId != null) {
+                                  final success = await cart.deleteItem(index);
+                                  if (!success && context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(cart.errorMessage ?? 'Gagal menghapus item'),
+                                        backgroundColor: Colors.red,
+                                      ),
+                                    );
+                                  }
+                                } else {
+                                  cart.removeItem(index);
+                                }
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: Colors.red[50],
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Icon(
+                                  Icons.delete_outline,
+                                  size: 18,
+                                  color: Colors.red[400],
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),

@@ -39,42 +39,33 @@ class CartProvider with ChangeNotifier {
   List<CartItem> get cartItems => _items; // Alias for compatibility
 
   int get itemCount => _items.fold(0, (sum, item) => sum + item.quantity);
-  double get subtotal => _items.fold(0.0, (sum, item) => sum + item.totalAmount);
+  
+  // Use backend calculation instead of local calculation
+  double get subtotal => _currentSale?.subtotal ?? 0.0;
+  double get taxRate => 0.0; // 11%
+  double get taxAmount => _currentSale?.taxAmount ?? 0.0;
+  double get total => _currentSale?.totalAmount ?? 0.0;
 
-  // Total (sekarang sama dengan subtotal karena tidak ada pajak)
-  double get total => subtotal;
+  // ------------------- PRODUCT CATALOG -------------------
 
-  // Data produk katalog
-  final List<Product> catalog = Product.sampleProducts;
-
-  // ------------------- LOGIC ADD TO CART -------------------
-
-  void addProductToCart(Product product, {int quantity = 1}) {
-    // Cari apakah item sudah ada di keranjang
-    final existingItemIndex = _items.indexWhere(
-      (item) => item.product.id == product.id,
-    );
-
-    if (existingItemIndex >= 0) {
-      // Jika sudah ada, tambahkan kuantitas
-      _items[existingItemIndex].quantity += quantity;
-    } else {
-      // Jika belum ada, tambahkan item baru
-      _items.add(CartItem(product: product, quantity: quantity));
-    }
+  /// Fetch products from API
+  Future<void> fetchProducts({int? categoryId, String? search}) async {
+    _isLoadingProducts = true;
+    _errorMessage = null;
     notifyListeners();
-  }
 
-  // Menambahkan CartItem langsung
-  void addItem(CartItem cartItem) {
-    final existingItemIndex = _items.indexWhere(
-      (item) => item.product.id == cartItem.product.id,
+    final result = await _productService.getProducts(
+      categoryId: categoryId,
+      search: search,
     );
 
-    if (existingItemIndex >= 0) {
-      _items[existingItemIndex].quantity += cartItem.quantity;
+    _isLoadingProducts = false;
+
+    if (result['success']) {
+      _catalog = result['products'] as List<Product>;
     } else {
-      _items.add(cartItem);
+      _errorMessage = result['message'];
+      _catalog = [];
     }
 
     notifyListeners();
@@ -161,7 +152,6 @@ class CartProvider with ChangeNotifier {
       _syncCartFromSale();
       
       // Auto-delete sale ONLY if it's still in draft status and cart is empty
-      // Paid/completed sales should NEVER be deleted
       if (_items.isEmpty && _currentSale != null && _currentSale!.paymentStatus == 'draft') {
         print('Cart is empty, auto-deleting draft sale ${_currentSale!.saleId}');
         final deleted = await clearSale();
@@ -190,6 +180,7 @@ class CartProvider with ChangeNotifier {
           orElse: () => Product(
             productId: saleItem.productId,
             name: saleItem.nameProduct,
+            category: 'Unknown',
             costPrice: 0,
             sellingPrice: saleItem.subtotal / saleItem.quantity,
             stock: 0,
@@ -201,7 +192,7 @@ class CartProvider with ChangeNotifier {
           sizeColor: 'Default',
           quantity: saleItem.quantity,
           isSelected: true,
-          saleItemId: saleItem.saleItemId, // Store for deletion
+          saleItemId: saleItem.saleItemId,
         ));
       }
     }
@@ -230,11 +221,9 @@ class CartProvider with ChangeNotifier {
   }
 
   /// Clear current sale (delete draft)
-  /// Only deletes if sale status is 'draft' - paid sales are protected
   Future<bool> clearSale() async {
     if (_currentSale == null) return true;
 
-    // Safety check: Never delete paid/completed sales
     if (_currentSale!.paymentStatus != 'draft') {
       print('Warning: Cannot delete sale ${_currentSale!.saleId} - status is ${_currentSale!.paymentStatus}');
       _errorMessage = 'Cannot delete completed sales';
@@ -262,16 +251,23 @@ class CartProvider with ChangeNotifier {
     }
   }
 
-  // ------------------- LEGACY METHODS FOR COMPATIBILITY -------------------
+  // ------------------- CART ITEM MANAGEMENT -------------------
 
-  void increaseQuantity(int index) {
+  void toggleSelect(int index) {
+    if (index >= 0 && index < _items.length) {
+      _items[index].isSelected = !_items[index].isSelected;
+      notifyListeners();
+    }
+  }
+
+  void increaseQty(int index) {
     if (index >= 0 && index < _items.length) {
       _items[index].quantity++;
       notifyListeners();
     }
   }
 
-  void decreaseQuantity(int index) {
+  void decreaseQty(int index) {
     if (index >= 0 && index < _items.length) {
       if (_items[index].quantity > 1) {
         _items[index].quantity--;
@@ -289,7 +285,27 @@ class CartProvider with ChangeNotifier {
     }
   }
 
-  // Memperbarui kuantitas item secara langsung
+  /// Delete item from cart via API by index
+  Future<bool> deleteItem(int index) async {
+    if (index < 0 || index >= _items.length) return false;
+    
+    final item = _items[index];
+    if (item.saleItemId == null) {
+      // If no saleItemId, just remove locally
+      _items.removeAt(index);
+      notifyListeners();
+      return true;
+    }
+    
+    // Call API to delete
+    return await removeItemFromSale(item.saleItemId!);
+  }
+
+  void removeSelected() {
+    _items.removeWhere((item) => item.isSelected);
+    notifyListeners();
+  }
+
   void updateQuantity(int index, int newQuantity) {
     if (index >= 0 && index < _items.length && newQuantity > 0) {
       _items[index].quantity = newQuantity;
@@ -299,6 +315,11 @@ class CartProvider with ChangeNotifier {
 
   void clearCart() {
     _items.clear();
+    _currentSale = null;
     notifyListeners();
   }
+
+  // Aliases for compatibility
+  void increaseQuantity(int index) => increaseQty(index);
+  void decreaseQuantity(int index) => decreaseQty(index);
 }
