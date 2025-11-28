@@ -31,6 +31,12 @@ class _CatalogScreenState extends State<CatalogScreen> {
         _searchQuery = _searchController.text;
       });
     });
+    
+    // Fetch products from API when screen loads
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final cartProvider = context.read<CartProvider>();
+      cartProvider.fetchProducts();
+    });
   }
 
   @override
@@ -102,6 +108,37 @@ class _CatalogScreenState extends State<CatalogScreen> {
           Expanded(
             child: Consumer<CartProvider>(
               builder: (ctx, cart, child) {
+                // Show loading indicator
+                if (cart.isLoadingProducts) {
+                  return const Center(
+                    child: CircularProgressIndicator(),
+                  );
+                }
+
+                // Show error message
+                if (cart.errorMessage != null) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.error_outline, size: 64, color: Colors.red[300]),
+                        const SizedBox(height: 16),
+                        Text(
+                          cart.errorMessage!,
+                          style: const TextStyle(fontSize: 16),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton.icon(
+                          onPressed: () => cart.fetchProducts(),
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('Coba Lagi'),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
                 final List<Product> filteredProducts = cart.catalog.where((p) {
                   final matchesSearch = p.name.toLowerCase().contains(_searchQuery.toLowerCase());
                   final matchesCategory = _selectedCategory == 'All' || p.category == _selectedCategory;
