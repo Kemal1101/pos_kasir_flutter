@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'providers/cart_provider.dart';
-import 'screens/home_screen.dart';
 import 'pages/login_page.dart';
-import 'pages/home_page.dart';
+import 'screens/home_screen.dart';
 
 void main() {
   // Pastikan Anda menambahkan gambar aset dan mendeklarasikannya di pubspec.yaml
@@ -32,7 +31,7 @@ class SuperCashierApp extends StatelessWidget {
       initialRoute: '/login', 
       routes: {
         '/login': (context) => const LoginPage(),
-        '/home': (context) => const HomePage(), 
+        '/home': (context) => const HomeScreen(), 
       },
     );
   }

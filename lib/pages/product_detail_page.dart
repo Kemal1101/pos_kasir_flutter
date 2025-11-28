@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../models/cart_item.dart';
 import '../models/product.dart';
 import '../providers/cart_provider.dart';
 import '../theme.dart';
@@ -45,13 +44,40 @@ class _ProductDetailModalState extends State<ProductDetailModal> {
                   color: Colors.grey[200],
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Center(
-                  child: Icon(
-                    Icons.shopping_bag,
-                    size: 80,
-                    color: Colors.grey[400],
-                  ),
-                ),
+                child: widget.product.productImages != null && widget.product.productImages!.isNotEmpty
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.network(
+                          widget.product.productImages!,
+                          fit: BoxFit.cover,
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return Center(
+                              child: CircularProgressIndicator(
+                                value: loadingProgress.expectedTotalBytes != null
+                                    ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                                    : null,
+                              ),
+                            );
+                          },
+                          errorBuilder: (context, error, stackTrace) {
+                            return Center(
+                              child: Icon(
+                                Icons.shopping_bag,
+                                size: 80,
+                                color: Colors.grey[400],
+                              ),
+                            );
+                          },
+                        ),
+                      )
+                    : Center(
+                        child: Icon(
+                          Icons.shopping_bag,
+                          size: 80,
+                          color: Colors.grey[400],
+                        ),
+                      ),
               ),
               const SizedBox(height: 20),
               Text(
@@ -66,8 +92,8 @@ class _ProductDetailModalState extends State<ProductDetailModal> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    widget.product.price,
-                    style: TextStyle(
+                    'Rp ${widget.product.price.toStringAsFixed(0)}',
+                    style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
                       color: AppTheme.primary,
@@ -144,14 +170,11 @@ class _ProductDetailModalState extends State<ProductDetailModal> {
                 child: ElevatedButton.icon(
                   onPressed: () {
                     final cartProvider = context.read<CartProvider>();
-                    final cartItem = CartItem(
-                      name: widget.product.name,
-                      description: 'Product',
-                      price: widget.product.numericPrice,
+                    cartProvider.addProductToCart(
+                      widget.product,
+                      'Default', // Size/Color variant
                       quantity: quantity,
-                      isSelected: true,
                     );
-                    cartProvider.addItem(cartItem);
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(

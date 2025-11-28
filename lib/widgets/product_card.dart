@@ -20,7 +20,34 @@ class ProductCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            Expanded(child: Center(child: Image.asset('assets/${product.imagePath}', fit: BoxFit.contain))),
+            Expanded(
+              child: Container(
+                color: Colors.grey[100],
+                child: product.productImages != null && product.productImages!.isNotEmpty
+                    ? Image.network(
+                        product.productImages!,
+                        fit: BoxFit.cover,
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return Center(
+                            child: CircularProgressIndicator(
+                              value: loadingProgress.expectedTotalBytes != null
+                                  ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                                  : null,
+                            ),
+                          );
+                        },
+                        errorBuilder: (context, error, stackTrace) {
+                          return Center(
+                            child: Icon(Icons.image_not_supported, size: 50, color: Colors.grey[400]),
+                          );
+                        },
+                      )
+                    : Center(
+                        child: Icon(Icons.image, size: 50, color: Colors.grey[400]),
+                      ),
+              ),
+            ),
             Padding(
               padding: const EdgeInsets.all(12.0),
               child: Column(

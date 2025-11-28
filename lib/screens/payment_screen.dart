@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/cart_provider.dart';
-import 'package:intl/intl.dart'; // Tambahkan intl di pubspec.yaml jika ingin format mata uang
-import '../widgets/bottom_nav_bar.dart';
 
 class PaymentScreen extends StatefulWidget {
   const PaymentScreen({super.key});

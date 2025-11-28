@@ -20,10 +20,6 @@ class _LoginPageState extends State<LoginPage> {
   // Colors based on the image's gradient and accents
   static const Color primaryPurple = Color(0xFF7A59FF); // Warna ungu utama
   static const Color lightPurple = Color(0xFFC78FF9); // Warna ungu muda/pink
-  static const Color brightPink = Color(0xFFF988BC); // Warna pink terang
-  static const Color cashierTextColor = Color(
-    0xFFFFEB3B,
-  ); // Kuning/emas untuk SuperCashier
   static const Color mainTextColor = Color(
     0xFF4A4A8E,
   ); // Warna teks utama gelap

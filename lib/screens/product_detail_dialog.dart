@@ -14,6 +14,7 @@ class ProductDetailDialog extends StatefulWidget {
 
 class _ProductDetailDialogState extends State<ProductDetailDialog> {
   int _quantity = 1;
+  bool _isAdding = false;
 
   void _increaseQuantity() {
     if (_quantity < widget.product.stock) {
@@ -28,6 +29,42 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
       setState(() {
         _quantity--;
       });
+    }
+  }
+
+  Future<void> _addToCart() async {
+    setState(() {
+      _isAdding = true;
+    });
+
+    final cartProvider = context.read<CartProvider>();
+    final success = await cartProvider.addProductToCart(
+      widget.product,
+      'Default',
+      quantity: _quantity,
+    );
+
+    setState(() {
+      _isAdding = false;
+    });
+
+    if (!mounted) return;
+
+    if (success) {
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${_quantity}x ${widget.product.name} ditambahkan ke keranjang.'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(cartProvider.errorMessage ?? 'Gagal menambahkan ke keranjang'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -49,12 +86,49 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
               Center(
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(12),
-                  child: Image.asset(
-                    'assets/${widget.product.imagePath}',
-                    height: 200,
-                    width: 200,
-                    fit: BoxFit.contain,
-                  ),
+                  child: widget.product.productImages != null && widget.product.productImages!.isNotEmpty
+                      ? Image.network(
+                          widget.product.productImages!,
+                          height: 200,
+                          width: 200,
+                          fit: BoxFit.cover,
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return SizedBox(
+                              height: 200,
+                              width: 200,
+                              child: Center(
+                                child: CircularProgressIndicator(
+                                  value: loadingProgress.expectedTotalBytes != null
+                                      ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                                      : null,
+                                ),
+                              ),
+                            );
+                          },
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              height: 200,
+                              width: 200,
+                              color: Colors.grey[200],
+                              child: Icon(
+                                Icons.image_not_supported,
+                                size: 80,
+                                color: Colors.grey[400],
+                              ),
+                            );
+                          },
+                        )
+                      : Container(
+                          height: 200,
+                          width: 200,
+                          color: Colors.grey[200],
+                          child: Icon(
+                            Icons.image,
+                            size: 80,
+                            color: Colors.grey[400],
+                          ),
+                        ),
                 ),
               ),
               const SizedBox(height: 24),
@@ -114,15 +188,18 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
-                  onPressed: () {
-                    context.read<CartProvider>().addProductToCart(widget.product, 'Default', quantity: _quantity);
-                    Navigator.of(context).pop(); // Tutup dialog
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('${_quantity}x ${widget.product.name} ditambahkan ke keranjang.')),
-                    );
-                  },
-                  icon: const Icon(Icons.add_shopping_cart),
-                  label: const Text('Tambah ke Keranjang'),
+                  onPressed: _isAdding ? null : _addToCart,
+                  icon: _isAdding
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : const Icon(Icons.add_shopping_cart),
+                  label: Text(_isAdding ? 'Menambahkan...' : 'Tambah ke Keranjang'),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),

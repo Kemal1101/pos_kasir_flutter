@@ -15,25 +15,52 @@ class ProductImageWidget extends StatelessWidget {
         color: Colors.grey[200],
         borderRadius: BorderRadius.circular(12),
       ),
-      child: Center(
-        child: Icon(
-          _getIconForProduct(),
-          size: 80,
-          color: Colors.grey[400],
-        ),
-      ),
+      child: product.productImages != null && product.productImages!.isNotEmpty
+          ? ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.network(
+                product.productImages!,
+                fit: BoxFit.cover,
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return Center(
+                    child: CircularProgressIndicator(
+                      value: loadingProgress.expectedTotalBytes != null
+                          ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                          : null,
+                    ),
+                  );
+                },
+                errorBuilder: (context, error, stackTrace) {
+                  return Center(
+                    child: Icon(
+                      _getIconForProduct(),
+                      size: 80,
+                      color: Colors.grey[400],
+                    ),
+                  );
+                },
+              ),
+            )
+          : Center(
+              child: Icon(
+                _getIconForProduct(),
+                size: 80,
+                color: Colors.grey[400],
+              ),
+            ),
     );
   }
 
   IconData _getIconForProduct() {
-    switch (product.iconType) {
-      case IconType.shirt:
+    // Use category to determine icon
+    switch (product.category.toLowerCase()) {
+      case 'hoodie':
         return Icons.checkroom;
-      case IconType.shoes:
-        return Icons.shoes;
-      case IconType.scarf:
+      case 'sneaker':
+        return Icons.directions_run;
+      case 'scarf':
         return Icons.checkroom;
-      case IconType.product:
       default:
         return Icons.shopping_bag;
     }

@@ -31,6 +31,12 @@ class _CatalogScreenState extends State<CatalogScreen>
         _searchQuery = _searchController.text;
       });
     });
+    
+    // Fetch products from API when screen loads
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final cartProvider = context.read<CartProvider>();
+      cartProvider.fetchProducts();
+    });
   }
 
   @override
@@ -72,12 +78,62 @@ class _CatalogScreenState extends State<CatalogScreen>
           Expanded(
             child: Consumer<CartProvider>(
               builder: (ctx, cart, child) {
+                // Show loading indicator
+                if (cart.isLoadingProducts) {
+                  return const Center(
+                    child: CircularProgressIndicator(),
+                  );
+                }
+
+                // Show error message
+                if (cart.errorMessage != null) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.error_outline, size: 64, color: Colors.red[300]),
+                        const SizedBox(height: 16),
+                        Text(
+                          cart.errorMessage!,
+                          style: const TextStyle(fontSize: 16),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton.icon(
+                          onPressed: () => cart.fetchProducts(),
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('Coba Lagi'),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
                 final List<Product> filteredProducts = cart.catalog.where((p) {
                   final selectedCategory = categories[_tabController.index];
                   final matchesCategory = selectedCategory == 'All' || p.category == selectedCategory;
                   final matchesSearch = p.name.toLowerCase().contains(_searchQuery.toLowerCase());
                   return matchesCategory && matchesSearch;
                 }).toList();
+
+                // Show empty state
+                if (filteredProducts.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.shopping_bag_outlined, size: 64, color: Colors.grey[400]),
+                        const SizedBox(height: 16),
+                        Text(
+                          _searchQuery.isNotEmpty
+                              ? 'Tidak ada produk ditemukan'
+                              : 'Belum ada produk',
+                          style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                        ),
+                      ],
+                    ),
+                  );
+                }
 
                 return GridView.builder(
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -93,7 +149,7 @@ class _CatalogScreenState extends State<CatalogScreen>
                       product: product,
                       onTap: () {
                         showDialog(
-                          context: context, // Menggunakan context yang benar dari builder
+                          context: context,
                           builder: (ctx) => ProductDetailDialog(product: product),
                         );
                       },
