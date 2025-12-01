@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/cart_provider.dart';
 import '../models/product.dart';
-import '../widgets/product_card.dart';
-import 'product_detail_dialog.dart'; // Memastikan import ini menunjuk ke file di dalam folder 'screens'
+import '../providers/cart_provider.dart';
 
 class CatalogScreen extends StatefulWidget {
   const CatalogScreen({super.key});
@@ -12,20 +10,22 @@ class CatalogScreen extends StatefulWidget {
   State<CatalogScreen> createState() => _CatalogScreenState();
 }
 
-class _CatalogScreenState extends State<CatalogScreen>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-  final TextEditingController _searchController = TextEditingController();
+class _CatalogScreenState extends State<CatalogScreen> {
   String _searchQuery = '';
+  String _selectedCategory = 'All'; // Track selected category
+  final TextEditingController _searchController = TextEditingController();
 
-  // Daftar kategori produk yang akan ditampilkan di TabBar
-  final List<String> categories = ['All', 'Scarf', 'Sneaker', 'Hoodie', 'Electronics', 'Fashion'];
+  String _formatCurrency(double amount) {
+    final formatter = amount.toStringAsFixed(0);
+    return formatter.replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (Match m) => '${m[1]}.',
+    );
+  }
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: categories.length, vsync: this);
-    _tabController.addListener(() => setState(() {}));
     _searchController.addListener(() {
       setState(() {
         _searchQuery = _searchController.text;
@@ -41,7 +41,6 @@ class _CatalogScreenState extends State<CatalogScreen>
 
   @override
   void dispose() {
-    _tabController.dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -52,29 +51,60 @@ class _CatalogScreenState extends State<CatalogScreen>
       color: Colors.white,
       padding: const EdgeInsets.all(16.0),
       child: Column(
-        children: <Widget>[
+        children: [
           // Search Bar
           Padding(
             padding: const EdgeInsets.only(bottom: 16.0),
             child: TextField(
               controller: _searchController,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 hintText: 'Cari Produk...',
-                prefixIcon: Icon(Icons.search),
-                border: OutlineInputBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(10)),
-                    borderSide: BorderSide.none),
-                fillColor: Color(0xFFF5F5F5),
+                prefixIcon: const Icon(Icons.search),
+                border: const OutlineInputBorder(
+                  borderRadius: BorderRadius.all(Radius.circular(10)),
+                  borderSide: BorderSide.none,
+                ),
+                fillColor: const Color(0xFFF5F5F5),
                 filled: true,
               ),
             ),
           ),
 
-          // Category/Filter Tab Bar
-          _buildCategoryFilter(),
+          // Category Filter - Using SingleChildScrollView instead of TabBar
+          SizedBox(
+            height: 50,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: Product.categories.length,
+              itemBuilder: (ctx, index) {
+                final category = Product.categories[index];
+                final isSelected = _selectedCategory == category;
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8.0),
+                  child: FilterChip(
+                    label: Text(
+                      category,
+                      style: TextStyle(
+                        color: isSelected ? Colors.white : Colors.black87,
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      ),
+                    ),
+                    selected: isSelected,
+                    backgroundColor: Colors.grey[200],
+                    selectedColor: const Color(0xFF673AB7),
+                    onSelected: (_) {
+                      setState(() {
+                        _selectedCategory = category;
+                      });
+                    },
+                  ),
+                );
+              },
+            ),
+          ),
           const SizedBox(height: 16),
 
-          // Product Grid View
+          // Product List
           Expanded(
             child: Consumer<CartProvider>(
               builder: (ctx, cart, child) {
@@ -110,49 +140,119 @@ class _CatalogScreenState extends State<CatalogScreen>
                 }
 
                 final List<Product> filteredProducts = cart.catalog.where((p) {
-                  final selectedCategory = categories[_tabController.index];
-                  final matchesCategory = selectedCategory == 'All' || p.category == selectedCategory;
                   final matchesSearch = p.name.toLowerCase().contains(_searchQuery.toLowerCase());
-                  return matchesCategory && matchesSearch;
+                  final matchesCategory = _selectedCategory == 'All' || p.category == _selectedCategory;
+                  return matchesSearch && matchesCategory;
                 }).toList();
 
-                // Show empty state
-                if (filteredProducts.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.shopping_bag_outlined, size: 64, color: Colors.grey[400]),
-                        const SizedBox(height: 16),
-                        Text(
-                          _searchQuery.isNotEmpty
-                              ? 'Tidak ada produk ditemukan'
-                              : 'Belum ada produk',
-                          style: TextStyle(fontSize: 16, color: Colors.grey[600]),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-
-                return GridView.builder(
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 3,
-                    childAspectRatio: 0.75,
-                    crossAxisSpacing: 16.0,
-                    mainAxisSpacing: 16.0,
-                  ),
+                return ListView.builder(
                   itemCount: filteredProducts.length,
                   itemBuilder: (context, index) {
                     final product = filteredProducts[index];
-                    return ProductCard(
-                      product: product,
+                    // Find if product already in cart and get quantity
+                    final cartItemIndex = cart.items.indexWhere((item) => item.product.id == product.id);
+                    final quantity = cartItemIndex >= 0 ? cart.items[cartItemIndex].quantity : 0;
+                    
+                    return GestureDetector(
                       onTap: () {
-                        showDialog(
-                          context: context,
-                          builder: (ctx) => ProductDetailDialog(product: product),
-                        );
+                        _showProductDetailDialog(context, cart, product);
                       },
+                      child: Stack(
+                        children: [
+                          Card(
+                            margin: const EdgeInsets.only(bottom: 8),
+                            child: Padding(
+                              padding: const EdgeInsets.all(12),
+                              child: Row(
+                                children: [
+                                  // Product Image/Icon (Paling Kiri)
+                                  Container(
+                                    width: 70,
+                                    height: 70,
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey[200],
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        product.name.substring(0, 2).toUpperCase(),
+                                        style: TextStyle(
+                                          fontSize: 24,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.grey[400],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  // Product Info (Kanan)
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          product.name,
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 14,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Row(
+                                          children: [
+                                            Text(
+                                              'Sisa: ${product.stock}',
+                                              style: TextStyle(
+                                                color: Colors.grey[600],
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 12),
+                                            Text(
+                                              'Rp ${_formatCurrency(product.sellingPrice)}',
+                                              style: const TextStyle(
+                                                color: Color(0xFF673AB7),
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 13,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          // Badge quantity at top right
+                          if (quantity > 0)
+                            Positioned(
+                              top: 4,
+                              right: 4,
+                              child: Container(
+                                width: 32,
+                                height: 32,
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFF4CAF50),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    '$quantity',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
                     );
                   },
                 );
@@ -164,28 +264,125 @@ class _CatalogScreenState extends State<CatalogScreen>
     );
   }
 
-  Widget _buildCategoryFilter() {
-    return Container(
-      alignment: Alignment.centerLeft,
-      child: TabBar(
-        controller: _tabController,
-        isScrollable: true,
-        indicatorPadding: EdgeInsets.zero,
-        labelPadding: const EdgeInsets.symmetric(horizontal: 8.0),
-        indicator: const BoxDecoration(),
-        tabs: categories.map((category) {
-          final bool isSelected = categories.indexOf(category) == _tabController.index;
-          return Tab(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: isSelected ? Colors.deepPurple : Colors.grey[200],
-                borderRadius: BorderRadius.circular(20),
+  void _showProductDetailDialog(
+    BuildContext context,
+    CartProvider cart,
+    Product product,
+  ) {
+    final TextEditingController quantityController = TextEditingController(text: '1');
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: Text(product.name),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: double.infinity,
+                height: 150,
+                decoration: BoxDecoration(
+                  color: Colors.grey[200],
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Center(
+                  child: Text(
+                    product.name.substring(0, 2).toUpperCase(),
+                    style: TextStyle(
+                      fontSize: 48,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey[400],
+                    ),
+                  ),
+                ),
               ),
-              child: Text(category, style: TextStyle(color: isSelected ? Colors.white : Colors.black87, fontWeight: FontWeight.w500)),
+              const SizedBox(height: 16),
+              Text(
+                'Harga: Rp ${_formatCurrency(product.sellingPrice)}',
+                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Stok: ${product.stock}',
+                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  const Text('Qty: '),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    icon: const Icon(Icons.remove),
+                    onPressed: () {
+                      int currentQuantity = int.tryParse(quantityController.text) ?? 1;
+                      if (currentQuantity > 1) {
+                        setState(() {
+                          quantityController.text = (currentQuantity - 1).toString();
+                        });
+                      }
+                    },
+                  ),
+                  SizedBox(
+                    width: 50,
+                    child: TextFormField(
+                      controller: quantityController,
+                      textAlign: TextAlign.center,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.all(8),
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.add),
+                    onPressed: () {
+                       int currentQuantity = int.tryParse(quantityController.text) ?? 0;
+                       setState(() {
+                         quantityController.text = (currentQuantity + 1).toString();
+                       });
+                    },
+                  ),
+                ],
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Batal'),
             ),
-          );
-        }).toList(),
+            ElevatedButton(
+              onPressed: () {
+                int quantity = int.tryParse(quantityController.text) ?? 0;
+                // Jika input tidak valid atau <= 0, anggap sebagai 1
+                if (quantity <= 0) {
+                  quantity = 1;
+                }
+
+                cart.addProductToCart(product, 'Default', quantity: quantity);
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      '$quantity x ${product.name} ditambahkan ke keranjang',
+                    ),
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF673AB7),
+              ),
+              child: const Text(
+                'Tambah ke Keranjang',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
