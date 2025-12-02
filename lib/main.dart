@@ -8,11 +8,18 @@ import 'screens/payment/qris_payment_screen.dart';
 import 'screens/payment/cash_payment_screen.dart';
 
 void main() {
-  runApp(const MyApp());
+  // Pastikan Anda menambahkan gambar aset dan mendeklarasikannya di pubspec.yaml
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(
+    ChangeNotifierProvider(
+      create: (context) => CartProvider(),
+      child: const SuperCashierApp(),
+    ),
+  );
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class SuperCashierApp extends StatelessWidget {
+  const SuperCashierApp({super.key});
 
   @override
   Widget build(BuildContext context) {

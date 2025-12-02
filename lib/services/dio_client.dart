@@ -1,4 +1,6 @@
 import 'package:dio/dio.dart';
+import 'auth_interceptor.dart'; 
+// Asumsikan LogInterceptor sudah tersedia di lingkungan Anda
 
 class DioClient {
   final Dio dio = Dio(
@@ -13,10 +15,13 @@ class DioClient {
   );
 
   DioClient() {
-    // Tambahkan interceptor jika perlu
+    // Tambahkan LogInterceptor (seperti yang Anda berikan)
     dio.interceptors.add(LogInterceptor(
       requestBody: true,
       responseBody: true,
     ));
+    
+    // TAMBAHKAN INTERCEPTOR UNTUK OTOMATISASI TOKEN JWT
+    dio.interceptors.add(AuthInterceptor());
   }
 }
