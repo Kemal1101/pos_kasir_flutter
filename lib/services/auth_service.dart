@@ -1,9 +1,68 @@
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+// WAJIB: Import flutter/foundation untuk mengakses debugPrint
+import 'package:flutter/foundation.dart';
+
 import 'dio_client.dart';
 
 class AuthService {
   final DioClient dioClient = DioClient();
+  // Key token harus konsisten
+  static const String _tokenKey = 'access_token';
+
+  // --- FUNGSI TOKEN UTILITY ---
+
+  // Mengambil token dari SharedPreferences (digunakan oleh AuthCheckWidget)
+  Future<String?> getToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_tokenKey);
+  }
+
+  // Menyimpan token ke SharedPreferences
+  Future<void> saveToken(String token) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_tokenKey, token);
+    debugPrint("Token berhasil disimpan.");
+  }
+
+  // Menghapus token dari SharedPreferences
+  Future<void> removeToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_tokenKey);
+    debugPrint("Token berhasil dihapus dari storage.");
+  }
+
+  // Fungsi Logout (POST /api/logout)
+  Future<void> logout() async {
+    final token = await getToken();
+
+    if (token == null) {
+      debugPrint("Token sudah hilang di lokal. Logout sukses secara lokal.");
+      return;
+    }
+
+    try {
+      await dioClient.dio.post('/logout');
+      debugPrint("Logout server berhasil dipanggil.");
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 401 || e.response?.statusCode == 403) {
+        debugPrint(
+          "Logout server error (401/403). Token tidak valid, melanjutkan penghapusan lokal.",
+        );
+      } else {
+        debugPrint(
+          "Logout server error: ${e.response?.statusCode}. Token lokal tetap dihapus.",
+        );
+      }
+    } catch (e) {
+      debugPrint("Logout umum error: $e. Token lokal tetap dihapus.");
+    } finally {
+      // Pastikan token dihapus lokal
+      await removeToken();
+    }
+  }
+
+  // --- FUNGSI LOGIN ---
 
   Future<Map<String, dynamic>> login(String email, String password) async {
     try {
@@ -12,39 +71,24 @@ class AuthService {
         data: {'email': email, 'password': password},
       );
 
-      // Data utama (body respons JSON)
       final responseData = response.data as Map<String, dynamic>;
-
-      // Ambil data dari key 'data'
       final userData = responseData['data'] as Map<String, dynamic>?;
 
-      // Ambil role_id dari 'data.user.role_id'
-      final String? roleId = userData?['user']?['role_id'] as String?;
+      final dynamic rawRoleId = userData?['user']?['role_id'];
 
-      // --- Simpan token ---
       final String? accessToken = userData?['access_token'];
       if (accessToken != null) {
-        SharedPreferences prefs = await SharedPreferences.getInstance();
-        // Simpan access_token, bukan data['token']
-        await prefs.setString('token', accessToken);
+        await saveToken(accessToken);
       }
 
-      // --- MENGEMBALIKAN STRUKTUR LENGKAP UNTUK CONTROLLER ---
-      // AuthController memerlukan 'meta' dan 'data.user.role_id' yang dilewatkan.
-
       return {
-        // Status dari Dio/HTTP
         'success': true,
-        // Meta data harus dilewatkan untuk pesan dan status code
         'meta': responseData['meta'],
-        // Data lengkap untuk otorisasi role di controller
         'data': responseData['data'],
-        // Secara opsional, lewati role_id yang sudah diekstrak untuk akses cepat (role_id)
-        'role_id_ekstrak': roleId,
+        'role_id_ekstrak': rawRoleId,
         'message': responseData['meta']['message'] ?? "Login berhasil.",
       };
     } on DioException catch (e) {
-      // Menangani error HTTP/Dio (misalnya 401 Unauthorized)
       final message =
           e.response?.data?['meta']?['message'] ??
           "Login gagal. Cek kredensial.";
@@ -56,7 +100,6 @@ class AuthService {
         'data': null,
       };
     } catch (e) {
-      // Menangani error lain (misalnya parsing)
       return {
         'success': false,
         'meta': {'status': 500, 'message': "Terjadi kesalahan umum: $e"},
