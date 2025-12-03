@@ -17,7 +17,6 @@ Future<void> _showStatusDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
         title: Row(
           children: [
-            // Icon berdasarkan warna (sukses=centang, error=silang)
             Icon(
               color == Colors.green ? Icons.check_circle : Icons.error,
               color: color,
@@ -89,9 +88,9 @@ class AuthController {
         // Navigasi ke Dashboard
         Navigator.pushReplacementNamed(context, '/home');
 
-        // 2. TAMPILKAN NOTIFIKASI: Panggil dialog TANPA 'await'
-        // Dialog akan muncul segera setelah halaman '/home' dimuat.
-        _showStatusDialog(context, 'Sukses!', message, Colors.green);
+        // PERUBAHAN: Kode _showStatusDialog dihapus di sini.
+        // Notifikasi sukses sekarang ditangani oleh SnackBar di HomeScreen.dart
+
         return true;
       } else if (roleId == 1) {
         // --- AKSES DITOLAK (Role 1) ---
