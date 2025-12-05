@@ -66,39 +66,63 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Breakpoint untuk layout responsif
-    final bool isMobile = MediaQuery.of(context).size.width < 800;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final isLandscape = screenWidth > screenHeight;
+    
+    // Untuk landscape di mobile/tablet, gunakan desktop layout
+    // Untuk portrait di layar kecil, gunakan mobile layout
+    final bool useDesktopLayout = screenWidth >= 800 || isLandscape;
 
     return Scaffold(
       // Menggunakan warna latar belakang yang lebih halus
       backgroundColor: const Color(0xfff5f5f5),
-      body: isMobile
-          ? _mobileBody(context)
-          : _desktopBody(), // Memisahkan body untuk mobile/desktop
+      // Penting: Biarkan scaffold resize saat keyboard muncul
+      resizeToAvoidBottomInset: true,
+      body: SafeArea(
+        child: useDesktopLayout
+            ? _desktopBody(context)
+            : _mobileBody(context),
+      ),
     );
   }
 
   // ------------------------------------
-  // DESKTOP BODY WRAPPER (Masih menggunakan Center/Container terbatas)
+  // DESKTOP BODY WRAPPER (Juga untuk landscape)
   // ------------------------------------
-  Widget _desktopBody() {
+  Widget _desktopBody(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final isSmallLandscape = screenHeight < 450;
+    
+    // Hitung tinggi card yang optimal
+    final cardHeight = screenHeight * 0.85;
+    final minCardHeight = isSmallLandscape ? 280.0 : 400.0;
+    final maxCardHeight = 650.0;
+    final finalCardHeight = cardHeight.clamp(minCardHeight, maxCardHeight);
+    
     return Center(
-      child: Container(
-        width: 1000,
-        height: 650,
-        margin: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(25),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.15),
-              blurRadius: 30,
-              offset: const Offset(0, 15),
-            ),
-          ],
+      child: SingleChildScrollView(
+        child: Container(
+          width: screenWidth > 1000 ? 1000 : screenWidth * 0.95,
+          height: finalCardHeight,
+          margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(25),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.15),
+                blurRadius: 30,
+                offset: const Offset(0, 15),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(25),
+            child: _desktopLayout(context, isSmallLandscape),
+          ),
         ),
-        child: _desktopLayout(),
       ),
     );
   }
@@ -148,17 +172,25 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   // ------------------------------------
-  // DESKTOP LAYOUT
+  // DESKTOP LAYOUT (Juga untuk landscape mobile)
   // ------------------------------------
-  Widget _desktopLayout() {
+  Widget _desktopLayout(BuildContext context, bool isSmallLandscape) {
+    final isCompact = isSmallLandscape;
+    
     return Row(
       children: [
-        const Expanded(flex: 4, child: _GradientHeader(isMobile: false)),
+        Expanded(
+          flex: 4,
+          child: _GradientHeader(isMobile: false, isCompact: isCompact),
+        ),
         Expanded(
           flex: 5,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 60, vertical: 40),
-            child: _formSection(),
+            padding: EdgeInsets.symmetric(
+              horizontal: isCompact ? 20 : 60,
+              vertical: isCompact ? 10 : 40,
+            ),
+            child: _formSection(isCompact: isCompact),
           ),
         ),
       ],
@@ -168,79 +200,101 @@ class _LoginPageState extends State<LoginPage> {
   // ------------------------------------
   // FORM SECTION (Digunakan oleh kedua layout)
   // ------------------------------------
-  Widget _formSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        // "Sign In" title
-        const Text(
-          "Sign In",
-          style: TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.bold,
-            color: mainTextColor,
-          ),
-        ),
-
-        const SizedBox(height: 30),
-
-        // EMAIL INPUT
-        _buildInputField(
-          label: "EMAIL",
-          hint: "admin@supercashier.com",
-          controller: emailController,
-          keyboardType: TextInputType.emailAddress,
-        ),
-
-        const SizedBox(height: 20),
-
-        // PASSWORD INPUT
-        _buildInputField(
-          label: "PASSWORD",
-          hint: "********",
-          controller: passwordController,
-          isPassword: true,
-        ),
-
-        const SizedBox(height: 15),
-
-        // REMEMBER ME + FORGOT PASSWORD
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              children: [
-                Checkbox(
-                  value: rememberMe,
-                  onChanged: (v) => setState(() => rememberMe = v ?? false),
-                  activeColor: primaryPurple,
-                ),
-                const Text("Remember me", style: TextStyle(color: Colors.grey)),
-              ],
+  Widget _formSection({bool isCompact = false}) {
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // "Sign In" title
+          Text(
+            "Sign In",
+            style: TextStyle(
+              fontSize: isCompact ? 22 : 28,
+              fontWeight: FontWeight.bold,
+              color: mainTextColor,
             ),
-            TextButton(
-              onPressed: () {
-                /* TODO: Implement Forgot Password */
-              },
-              child: const Text(
-                "Forgot Password?",
-                style: TextStyle(
-                  color: primaryPurple,
-                  fontWeight: FontWeight.w600,
+          ),
+
+          SizedBox(height: isCompact ? 15 : 30),
+
+          // EMAIL INPUT
+          _buildInputField(
+            label: "EMAIL",
+            hint: "admin@supercashier.com",
+            controller: emailController,
+            keyboardType: TextInputType.emailAddress,
+            isCompact: isCompact,
+          ),
+
+          SizedBox(height: isCompact ? 10 : 20),
+
+          // PASSWORD INPUT
+          _buildInputField(
+            label: "PASSWORD",
+            hint: "********",
+            controller: passwordController,
+            isPassword: true,
+            isCompact: isCompact,
+          ),
+
+          SizedBox(height: isCompact ? 8 : 15),
+
+          // REMEMBER ME + FORGOT PASSWORD
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  SizedBox(
+                    height: isCompact ? 24 : 48,
+                    width: isCompact ? 24 : 48,
+                    child: Checkbox(
+                      value: rememberMe,
+                      onChanged: (v) => setState(() => rememberMe = v ?? false),
+                      activeColor: primaryPurple,
+                    ),
+                  ),
+                  Text(
+                    "Remember me",
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontSize: isCompact ? 12 : 14,
+                    ),
+                  ),
+                ],
+              ),
+              TextButton(
+                onPressed: () {
+                  /* TODO: Implement Forgot Password */
+                },
+                style: TextButton.styleFrom(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isCompact ? 4 : 8,
+                    vertical: isCompact ? 2 : 4,
+                  ),
+                ),
+                child: Text(
+                  "Forgot Password?",
+                  style: TextStyle(
+                    color: primaryPurple,
+                    fontWeight: FontWeight.w600,
+                    fontSize: isCompact ? 12 : 14,
+                  ),
                 ),
               ),
-            ),
-          ],
-        ),
+            ],
+          ),
 
-        const SizedBox(height: 35),
+          SizedBox(height: isCompact ? 15 : 35),
 
-        // LOGIN BUTTON
-        _buildLoginButton(),
+          // LOGIN BUTTON
+          _buildLoginButton(isCompact: isCompact),
 
-        const SizedBox(height: 30),
-      ],
+          SizedBox(height: isCompact ? 10 : 30),
+        ],
+      ),
     );
   }
 
@@ -255,22 +309,24 @@ class _LoginPageState extends State<LoginPage> {
     required TextEditingController controller,
     bool isPassword = false,
     TextInputType keyboardType = TextInputType.text,
+    bool isCompact = false,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontWeight: FontWeight.w600,
             color: Colors.grey,
+            fontSize: isCompact ? 11 : 14,
           ),
         ),
-        const SizedBox(height: 6),
+        SizedBox(height: isCompact ? 4 : 6),
         Container(
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(isCompact ? 8 : 10),
             // Border yang sangat tipis, seperti di gambar
             border: Border.all(color: Colors.grey.shade300, width: 1.0),
           ),
@@ -279,16 +335,22 @@ class _LoginPageState extends State<LoginPage> {
             // Gunakan obscurePassword jika isPassword=true
             obscureText: isPassword ? obscurePassword : false,
             keyboardType: keyboardType,
-            style: const TextStyle(color: mainTextColor),
+            style: TextStyle(
+              color: mainTextColor,
+              fontSize: isCompact ? 13 : 16,
+            ),
             decoration: InputDecoration(
               hintText: hint,
-              hintStyle: TextStyle(color: Colors.grey.shade400),
+              hintStyle: TextStyle(
+                color: Colors.grey.shade400,
+                fontSize: isCompact ? 13 : 16,
+              ),
               filled: true,
               fillColor: Colors.transparent,
               // Disesuaikan: Mengurangi padding vertikal agar lebih compact
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 20,
-                vertical: 12,
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: isCompact ? 12 : 20,
+                vertical: isCompact ? 8 : 12,
               ),
               border: InputBorder.none, // Hapus border default
               isDense: true,
@@ -300,7 +362,7 @@ class _LoginPageState extends State<LoginPage> {
                             ? Icons.visibility_off
                             : Icons.visibility,
                         color: Colors.grey,
-                        size: 20,
+                        size: isCompact ? 18 : 20,
                       ),
                       onPressed: () {
                         setState(() {
@@ -317,10 +379,10 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   // Custom Login Button with Gradient
-  Widget _buildLoginButton() {
+  Widget _buildLoginButton({bool isCompact = false}) {
     return SizedBox(
       width: double.infinity,
-      height: 52,
+      height: isCompact ? 40 : 52,
       child: DecoratedBox(
         decoration: BoxDecoration(
           gradient: const LinearGradient(
@@ -328,12 +390,12 @@ class _LoginPageState extends State<LoginPage> {
             begin: Alignment.centerLeft,
             end: Alignment.centerRight,
           ),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(isCompact ? 8 : 12),
           boxShadow: [
             BoxShadow(
               color: primaryPurple.withOpacity(0.4),
-              blurRadius: 10,
-              offset: const Offset(0, 5),
+              blurRadius: isCompact ? 6 : 10,
+              offset: Offset(0, isCompact ? 3 : 5),
             ),
           ],
         ),
@@ -344,23 +406,23 @@ class _LoginPageState extends State<LoginPage> {
             shadowColor: Colors.transparent,
             elevation: 0,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(isCompact ? 8 : 12),
             ),
           ),
           child: isLoading
-              ? const SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(
+              ? SizedBox(
+                  width: isCompact ? 20 : 24,
+                  height: isCompact ? 20 : 24,
+                  child: const CircularProgressIndicator(
                     color: Colors.white,
                     strokeWidth: 3,
                   ),
                 )
-              : const Text(
+              : Text(
                   "SIGN IN",
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 18,
+                    fontSize: isCompact ? 14 : 18,
                     fontWeight: FontWeight.bold,
                     letterSpacing: 1,
                   ),
@@ -376,7 +438,8 @@ class _LoginPageState extends State<LoginPage> {
 // ------------------------------------
 class _GradientHeader extends StatelessWidget {
   final bool isMobile;
-  const _GradientHeader({required this.isMobile});
+  final bool isCompact;
+  const _GradientHeader({required this.isMobile, this.isCompact = false});
 
   static const Color primaryPurple = Color(0xFF7A59FF);
   static const Color lightPurple = Color(0xFFC78FF9);
@@ -386,7 +449,7 @@ class _GradientHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      // Pastikan lebar selalu penuh di mobile
+      // Pastikan lebar selalu penuh di mobile, dan tinggi penuh untuk desktop/landscape
       width: double.infinity,
       height: isMobile ? 220 : double.infinity,
       decoration: BoxDecoration(
@@ -416,28 +479,29 @@ class _GradientHeader extends StatelessWidget {
           ),
 
           Padding(
-            padding: EdgeInsets.all(isMobile ? 30 : 50.0),
+            padding: EdgeInsets.all(isMobile ? 30 : (isCompact ? 20 : 50)),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               // Disesuaikan: Menggunakan center untuk tampilan vertikal yang lebih baik di mobile (Refinement 1)
               mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 // Menjaga agar 'Welcome Back!' tetap satu baris di mobile sesuai screenshot
                 Text(
                   "Welcome Back!",
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: isMobile ? 32 : 44,
+                    fontSize: isMobile ? 32 : (isCompact ? 28 : 44),
                     fontWeight: FontWeight.bold,
                     height: 1.2,
                   ),
                 ),
-                const SizedBox(height: 8),
-                const Text(
+                SizedBox(height: isCompact ? 4 : 8),
+                Text(
                   "SuperCashier",
                   style: TextStyle(
                     color: cashierTextColor,
-                    fontSize: 20,
+                    fontSize: isCompact ? 16 : 20,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
