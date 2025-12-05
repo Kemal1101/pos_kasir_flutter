@@ -1,8 +1,8 @@
 // lib/screens/payment/qris_payment_screen.dart
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
-import 'package:pos_kasir_flutter/widgets/qris_success_payment_popup.dart';
-
+import 'package:provider/provider.dart';
+import '../../providers/cart_provider.dart';
 
 class QrisPaymentScreen extends StatelessWidget {
   final double total;
@@ -179,7 +179,41 @@ class QrisPaymentScreen extends StatelessWidget {
 
             // CONFIRM BUTTON
             GestureDetector(
-              onTap: () => _showSuccessPopup(context),
+              onTap: () async {
+                final cart = Provider.of<CartProvider>(context, listen: false);
+                
+                // Show loading
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (ctx) => const Center(
+                    child: CircularProgressIndicator(),
+                  ),
+                );
+
+                // Complete sale via API (payment_id: 5 = qris)
+                final result = await cart.completeSale(
+                  paymentId: 5,
+                );
+
+                // Close loading
+                if (context.mounted) Navigator.pop(context);
+
+                if (result['success']) {
+                  // Show success popup
+                  if (context.mounted) _showSuccessPopup(context);
+                } else {
+                  // Show error
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(result['message'] ?? 'Pembayaran gagal'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+              },
               child: Container(
                 height: 58,
                 margin: const EdgeInsets.symmetric(horizontal: 15),
@@ -248,7 +282,7 @@ class QrisPaymentScreen extends StatelessWidget {
                   ),
                   onPressed: () {
                     Navigator.pop(context); // tutup dialog
-                    Navigator.pop(context); // kembali ke payment screen
+                    Navigator.pop(context, true); // kembali ke payment screen dengan status sukses
                   },
                   child: const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 22, vertical: 12),

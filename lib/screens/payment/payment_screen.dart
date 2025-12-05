@@ -1,6 +1,6 @@
 // lib/screens/payment/payment_screen.dart
 import 'package:flutter/material.dart';
-import '../../models/cart_item_model.dart';
+import '../../models/cart_item.dart';
 import '../../widgets/payment_popup.dart';
 import 'cash_payment_screen.dart';
 import 'qris_payment_screen.dart';

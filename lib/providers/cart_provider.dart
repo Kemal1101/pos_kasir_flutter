@@ -220,6 +220,49 @@ class CartProvider with ChangeNotifier {
     }
   }
 
+  /// Complete sale (finalize payment)
+  /// paymentId: 1=cash, 2=card, 5=qris
+  Future<Map<String, dynamic>> completeSale({
+    required int paymentId,
+  }) async {
+    if (_currentSale == null) {
+      return {
+        'success': false,
+        'message': 'No active sale',
+      };
+    }
+
+    _isProcessing = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    final result = await _saleService.completeSale(
+      saleId: _currentSale!.saleId,
+      paymentId: paymentId,
+    );
+
+    _isProcessing = false;
+
+    if (result['success']) {
+      _currentSale = result['sale'] as Sale;
+      // Clear cart after successful payment
+      _items.clear();
+      notifyListeners();
+      return {
+        'success': true,
+        'message': result['message'] ?? 'Payment confirmed successfully',
+        'sale': _currentSale,
+      };
+    } else {
+      _errorMessage = result['message'];
+      notifyListeners();
+      return {
+        'success': false,
+        'message': result['message'],
+      };
+    }
+  }
+
   /// Clear current sale (delete draft)
   Future<bool> clearSale() async {
     if (_currentSale == null) return true;

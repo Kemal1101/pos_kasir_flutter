@@ -30,7 +30,6 @@ flutter:
   uses-material-design: true
 
   assets:
-    - assets/icons/
     - assets/images/qr_sample.png
     - assets/lottie/
 

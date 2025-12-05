@@ -159,6 +159,46 @@ class SaleService {
     }
   }
 
+  /// Complete/finalize a sale (change status from draft to paid)
+  /// paymentId: 1=cash, 2=card, 5=qris
+  Future<Map<String, dynamic>> completeSale({
+    required int saleId,
+    required int paymentId,
+  }) async {
+    try {
+      final response = await dioClient.dio.post(
+        '/sales/$saleId/confirm-payment',
+        data: {
+          'payment_id': paymentId,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = response.data['data'];
+        return {
+          'success': true,
+          'sale': Sale.fromJson(data),
+          'message': 'Payment confirmed successfully',
+        };
+      }
+
+      return {
+        'success': false,
+        'message': response.data['message'] ?? 'Failed to confirm payment',
+      };
+    } on DioException catch (e) {
+      return {
+        'success': false,
+        'message': e.response?.data['message'] ?? 'Failed to confirm payment',
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'An error occurred: ${e.toString()}',
+      };
+    }
+  }
+
   /// Delete a draft sale
   /// Only works for draft sales, restores stock
   Future<Map<String, dynamic>> deleteSale(int saleId) async {

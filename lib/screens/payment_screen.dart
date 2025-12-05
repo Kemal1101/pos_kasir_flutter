@@ -258,39 +258,70 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 
-  void _processPayment() {
+  void _processPayment() async {
     final cart = Provider.of<CartProvider>(context, listen: false);
     
-    // Show success dialog
+    // Map payment method to payment_id: 0=card(2), 1=cash(1), 2=qris(5)
+    final paymentId = _selectedPaymentMethod == 1 ? 1 : (_selectedPaymentMethod == 2 ? 5 : 2);
+    final paymentName = ["Kartu Debit", "Tunai", "QRIS"][_selectedPaymentMethod];
+    
+    // Show loading
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Pembayaran Berhasil'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Total: ${_formatCurrency(cart.total)}'),
-            const SizedBox(height: 8),
-            Text('Metode: ${["Kartu Debit", "Tunai", "QRIS"][_selectedPaymentMethod]}'),
-            const SizedBox(height: 12),
-            const Text('Terima kasih telah berbelanja!'),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              cart.clearCart();
-              Navigator.popUntil(context, (route) => route.isFirst);
-              // Navigate back to home
-              if (mounted) {
-                Navigator.pop(context);
-              }
-            },
-            child: const Text('Selesai'),
-          ),
-        ],
+      barrierDismissible: false,
+      builder: (ctx) => const Center(
+        child: CircularProgressIndicator(),
       ),
     );
+
+    // Complete sale via API
+    final result = await cart.completeSale(
+      paymentId: paymentId,
+    );
+
+    // Close loading
+    if (mounted) Navigator.pop(context);
+
+    if (result['success']) {
+      // Show success dialog
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Pembayaran Berhasil'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Total: ${_formatCurrency(cart.total)}'),
+                const SizedBox(height: 8),
+                Text('Metode: $paymentName'),
+                const SizedBox(height: 12),
+                const Text('Terima kasih telah berbelanja!'),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context); // Close dialog
+                  Navigator.pop(context, true); // Return to cart with success
+                },
+                child: const Text('Selesai'),
+              ),
+            ],
+          ),
+        );
+      }
+    } else {
+      // Show error
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message'] ?? 'Pembayaran gagal'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }
