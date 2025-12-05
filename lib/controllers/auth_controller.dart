@@ -88,10 +88,7 @@ class AuthController {
         // --- AKSES DIIZINKAN (Role 2) ---
         // Navigasi ke Dashboard
         Navigator.pushReplacementNamed(context, '/home');
-
-        // 2. TAMPILKAN NOTIFIKASI: Panggil dialog TANPA 'await'
-        // Dialog akan muncul segera setelah halaman '/home' dimuat.
-        _showStatusDialog(context, 'Sukses!', message, Colors.green);
+        
         return true;
       } else if (roleId == 1) {
         // --- AKSES DITOLAK (Role 1) ---

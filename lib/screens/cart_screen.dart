@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/cart_provider.dart';
-import 'payment_screen.dart';
+import 'payment/payment_screen.dart';
 
 class CartScreen extends StatelessWidget {
   const CartScreen({super.key});
@@ -259,13 +259,28 @@ class CartScreen extends StatelessWidget {
               child: GestureDetector(
                 onTap: cart.items.isEmpty
                     ? null
-                    : () {
-                        Navigator.push(
+                    : () async {
+                        final paymentSuccess = await Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (ctx) => const PaymentScreen(),
+                            builder: (ctx) => PaymentScreen(
+                              cartItems: cart.items,
+                            ),
                           ),
                         );
+
+                        // Jika pembayaran berhasil, tampilkan pesan sukses
+                        if (paymentSuccess == true && context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('✅ Pembayaran berhasil! Terima kasih.'),
+                              backgroundColor: Colors.green,
+                              duration: Duration(seconds: 3),
+                            ),
+                          );
+                          // Cart sudah auto-clear di CartProvider.completeSale()
+                          // UI akan auto-update karena Consumer
+                        }
                       },
                 child: Container(
                   width: double.infinity,

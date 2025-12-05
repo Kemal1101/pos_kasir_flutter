@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../providers/cart_provider.dart';
 
 class CashPaymentScreen extends StatefulWidget {
   final double total;
@@ -146,8 +148,48 @@ class _CashPaymentScreenState extends State<CashPaymentScreen> {
               height: 54,
               child: ElevatedButton(
                 onPressed: change >= 0
-                    ? () {
-                        Navigator.pop(context, true);
+                    ? () async {
+                        final cart = Provider.of<CartProvider>(context, listen: false);
+                        
+                        // Show loading
+                        showDialog(
+                          context: context,
+                          barrierDismissible: false,
+                          builder: (ctx) => const Center(
+                            child: CircularProgressIndicator(),
+                          ),
+                        );
+
+                        // Complete sale via API (payment_id: 1 = cash)
+                        final result = await cart.completeSale(
+                          paymentId: 1,
+                        );
+
+                        // Close loading
+                        if (context.mounted) Navigator.pop(context);
+
+                        if (result['success']) {
+                          // Show success and return
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Pembayaran berhasil!'),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+                            Navigator.pop(context, true);
+                          }
+                        } else {
+                          // Show error
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(result['message'] ?? 'Pembayaran gagal'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        }
                       }
                     : null,
                 style: ElevatedButton.styleFrom(
