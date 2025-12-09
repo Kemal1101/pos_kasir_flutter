@@ -244,14 +244,15 @@ class CartProvider with ChangeNotifier {
     _isProcessing = false;
 
     if (result['success']) {
-      _currentSale = result['sale'] as Sale;
-      // Clear cart after successful payment
+      final completedSale = result['sale'] as Sale;
+      // Clear cart and reset current sale after successful payment
       _items.clear();
+      _currentSale = null; // Reset to allow new sale
       notifyListeners();
       return {
         'success': true,
         'message': result['message'] ?? 'Payment confirmed successfully',
-        'sale': _currentSale,
+        'sale': completedSale,
       };
     } else {
       _errorMessage = result['message'];

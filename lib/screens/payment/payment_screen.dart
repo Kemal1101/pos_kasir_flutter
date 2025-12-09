@@ -1,6 +1,7 @@
 // lib/screens/payment/payment_screen.dart
 import 'package:flutter/material.dart';
 import '../../models/cart_item.dart';
+import '../../utils/responsive_helper.dart';
 import '../../widgets/payment_popup.dart';
 import 'cash_payment_screen.dart';
 import 'qris_payment_screen.dart';
@@ -19,23 +20,24 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
   double get subtotal =>
       widget.cartItems.fold(0.0, (s, item) => s + item.totalPrice);
-
-  double get tax => subtotal * 0.11;
-
-  double get total => subtotal + tax;
+  double get total => subtotal;
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = ResponsiveHelper.isMobile(context);
+    final isLandscape = ResponsiveHelper.isLandscape(context);
+    final screenWidth = ResponsiveHelper.screenWidth(context);
+    
     return Scaffold(
       backgroundColor: const Color(0xFFF6F7FB),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
-        title: const Text(
+        title: Text(
           "Order Summary",
           style: TextStyle(
-            fontSize: 22,
+            fontSize: ResponsiveHelper.getResponsiveFontSize(context, 20),
             fontWeight: FontWeight.bold,
             color: Colors.white,
           ),
@@ -50,143 +52,213 @@ class _PaymentScreenState extends State<PaymentScreen> {
           ),
         ),
       ),
+      body: isLandscape && !isMobile
+          ? _buildLandscapeLayout(context, screenWidth)
+          : _buildPortraitLayout(context, isMobile),
+    );
+  }
 
-      body: Column(
-        children: [
-          Expanded(
-            child: ListView.separated(
-              padding: const EdgeInsets.all(16),
-              itemCount: widget.cartItems.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
-              itemBuilder: (context, index) {
-                final item = widget.cartItems[index];
-                return _buildCartItem(item);
-              },
-            ),
+  /// Layout untuk landscape (tablet/desktop)
+  Widget _buildLandscapeLayout(BuildContext context, double screenWidth) {
+    return Row(
+      children: [
+        // Left: Cart items
+        Expanded(
+          flex: 2,
+          child: ListView.separated(
+            padding: const EdgeInsets.all(16),
+            itemCount: widget.cartItems.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            itemBuilder: (context, index) {
+              final item = widget.cartItems[index];
+              return _buildCartItem(item, false);
+            },
           ),
-
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        ),
+        // Divider
+        Container(
+          width: 1,
+          color: Colors.grey[300],
+        ),
+        // Right: Summary & Payment
+        Expanded(
+          flex: 1,
+          child: Container(
+            color: Colors.white,
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  "Discount Coupon",
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(16),
+                    child: _buildSummarySection(context, false),
                   ),
                 ),
-                const SizedBox(height: 8),
-
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.grey.shade300),
-                  ),
-                  child: TextField(
-                    controller: couponController,
-                    decoration: const InputDecoration(
-                      border: InputBorder.none,
-                      hintText: "Enter coupon code here ex: 20OFF",
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 16),
-
-                _buildRow(
-                  "Subtotal",
-                  "Rp ${_formatNumber(subtotal)}",
-                  bold: true,
-                  color: const Color(0xFF5B4EC3),
-                ),
-                _buildRow(
-                  "Tax (11%)",
-                  "Rp ${_formatNumber(tax)}",
-                  color: const Color(0xFFFF6B9D),
-                ),
-                const SizedBox(height: 8),
-                _buildRow(
-                  "Total",
-                  "Rp ${_formatNumber(total)}",
-                  bold: true,
-                  color: const Color(0xFF5B4EC3),
-                ),
+                _buildPaymentButton(context, false),
               ],
             ),
           ),
+        ),
+      ],
+    );
+  }
 
-          /// --- BUTTON FIXED ---
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: ElevatedButton(
-                onPressed: () async {
-                  final selected = await PaymentPopup.show(context, 'qris');
-                  if (selected == null) return;
-
-                  bool? paid;
-
-                  if (selected == 'qris') {
-                    paid = await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => QrisPaymentScreen(total: total),
-                      ),
-                    );
-                  } else if (selected == 'cash') {
-                    paid = await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => CashPaymentScreen(total: total),
-                      ),
-                    );
-                  }
-
-                  /// FIX: hanya pop jika payment sukses
-                  if (paid == true) {
-                    Navigator.pop(context, true);
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  padding: EdgeInsets.zero,
+  /// Layout untuk portrait (mobile)
+  Widget _buildPortraitLayout(BuildContext context, bool isMobile) {
+    return Column(
+      children: [
+        Expanded(
+          child: ListView.separated(
+            padding: EdgeInsets.all(isMobile ? 12 : 16),
+            itemCount: widget.cartItems.length,
+            separatorBuilder: (_, __) => SizedBox(height: isMobile ? 8 : 12),
+            itemBuilder: (context, index) {
+              final item = widget.cartItems[index];
+              return _buildCartItem(item, isMobile);
+            },
+          ),
+        ),
+        Container(
+          color: Colors.white,
+          child: Column(
+            children: [
+              Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: isMobile ? 12 : 16,
+                  vertical: isMobile ? 8 : 12,
                 ),
-                child: Ink(
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Color(0xFFFF6B9D), Color(0xFF5B4EC3)],
-                    ),
-                    borderRadius: BorderRadius.all(Radius.circular(12)),
+                child: _buildSummarySection(context, isMobile),
+              ),
+              _buildPaymentButton(context, isMobile),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Build summary section (coupon + totals)
+  Widget _buildSummarySection(BuildContext context, bool isMobile) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          "Discount Coupon",
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: ResponsiveHelper.getResponsiveFontSize(context, 14),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          padding: EdgeInsets.symmetric(horizontal: isMobile ? 10 : 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: Colors.grey.shade300),
+          ),
+          child: TextField(
+            controller: couponController,
+            style: TextStyle(
+              fontSize: ResponsiveHelper.getResponsiveFontSize(context, 14),
+            ),
+            decoration: InputDecoration(
+              border: InputBorder.none,
+              hintText: "Enter coupon code here ex: 20OFF",
+              hintStyle: TextStyle(
+                fontSize: ResponsiveHelper.getResponsiveFontSize(context, 13),
+              ),
+            ),
+          ),
+        ),
+        SizedBox(height: isMobile ? 12 : 16),
+        _buildRow(
+          context,
+          "Subtotal",
+          "Rp ${_formatNumber(subtotal)}",
+          bold: true,
+          color: const Color(0xFF5B4EC3),
+          isMobile: isMobile,
+        ),
+        const SizedBox(height: 8),
+        _buildRow(
+          context,
+          "Total",
+          "Rp ${_formatNumber(total)}",
+          bold: true,
+          color: const Color(0xFF5B4EC3),
+          isMobile: isMobile,
+        ),
+      ],
+    );
+  }
+
+  /// Build payment button
+  Widget _buildPaymentButton(BuildContext context, bool isMobile) {
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.all(isMobile ? 12 : 16),
+        child: SizedBox(
+          width: double.infinity,
+          height: isMobile ? 50 : 56,
+          child: ElevatedButton(
+            onPressed: () async {
+              final selected = await PaymentPopup.show(context, 'qris');
+              if (selected == null) return;
+
+              bool? paid;
+
+              if (selected == 'qris') {
+                paid = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => QrisPaymentScreen(total: total),
                   ),
-                  child: Container(
-                    alignment: Alignment.center,
-                    child: const Text(
-                      'SELECT PAYMENT METHOD',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
+                );
+              } else if (selected == 'cash') {
+                paid = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => CashPaymentScreen(total: total),
+                  ),
+                );
+              }
+
+              if (paid == true) {
+                Navigator.pop(context, true);
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: EdgeInsets.zero,
+            ),
+            child: Ink(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFFFF6B9D), Color(0xFF5B4EC3)],
+                ),
+                borderRadius: BorderRadius.all(Radius.circular(12)),
+              ),
+              child: Container(
+                alignment: Alignment.center,
+                child: Text(
+                  'SELECT PAYMENT METHOD',
+                  style: TextStyle(
+                    fontSize: ResponsiveHelper.getResponsiveFontSize(context, 14),
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
                   ),
                 ),
               ),
             ),
           ),
-        ],
+        ),
       ),
     );
   }
 
-  Widget _buildCartItem(CartItem item) {
+  Widget _buildCartItem(CartItem item, bool isMobile) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -198,45 +270,53 @@ class _PaymentScreenState extends State<PaymentScreen> {
           ),
         ],
       ),
-      padding: const EdgeInsets.all(14),
+      padding: EdgeInsets.all(isMobile ? 10 : 14),
       child: Row(
         children: [
           Container(
-            width: 64,
-            height: 64,
+            width: isMobile ? 50 : 64,
+            height: isMobile ? 50 : 64,
             decoration: BoxDecoration(
               color: Colors.grey[200],
               borderRadius: BorderRadius.circular(8),
             ),
-            child: const Icon(Icons.image, size: 36, color: Colors.grey),
+            child: Icon(
+              Icons.image,
+              size: isMobile ? 28 : 36,
+              color: Colors.grey,
+            ),
           ),
-          const SizedBox(width: 12),
-
+          SizedBox(width: isMobile ? 10 : 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   item.product.name,
-                  style: const TextStyle(
-                    fontSize: 16,
+                  style: TextStyle(
+                    fontSize: ResponsiveHelper.getResponsiveFontSize(context, 14),
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF5B4EC3),
+                    color: const Color(0xFF5B4EC3),
                   ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 6),
                 Text(
                   "Rp ${_formatNumber(item.product.price)} x ${item.quantity}",
+                  style: TextStyle(
+                    fontSize: ResponsiveHelper.getResponsiveFontSize(context, 12),
+                  ),
                 ),
               ],
             ),
           ),
-
           Text(
             "Rp ${_formatNumber(item.totalPrice)}",
-            style: const TextStyle(
+            style: TextStyle(
               fontWeight: FontWeight.bold,
-              color: Color(0xFF5B4EC3),
+              color: const Color(0xFF5B4EC3),
+              fontSize: ResponsiveHelper.getResponsiveFontSize(context, 13),
             ),
           ),
         ],
@@ -244,17 +324,26 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 
-  Widget _buildRow(String label, String value,
-      {bool bold = false, Color? color}) {
+  Widget _buildRow(
+    BuildContext context,
+    String label,
+    String value, {
+    bool bold = false,
+    Color? color,
+    bool isMobile = false,
+  }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
+      padding: EdgeInsets.symmetric(
+        vertical: isMobile ? 3 : 4,
+        horizontal: isMobile ? 2 : 4,
+      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
             label,
             style: TextStyle(
-              fontSize: 15,
+              fontSize: ResponsiveHelper.getResponsiveFontSize(context, 14),
               fontWeight: bold ? FontWeight.w600 : FontWeight.normal,
               color: color ?? Colors.black,
             ),
@@ -262,7 +351,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
           Text(
             value,
             style: TextStyle(
-              fontSize: 15,
+              fontSize: ResponsiveHelper.getResponsiveFontSize(context, 14),
               fontWeight: bold ? FontWeight.w600 : FontWeight.normal,
               color: color ?? Colors.black,
             ),

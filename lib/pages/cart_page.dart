@@ -81,8 +81,7 @@ class _CartPageState extends State<CartPage> {
       (sum, item) => sum + item.totalPrice,
     );
     double discount = subtotal * (_discountPercentage / 100);
-    double tax = (subtotal - discount) * 0.11;
-    double total = subtotal - discount + tax;
+    double total = subtotal - discount;
 
     return Row(
       children: [
@@ -342,19 +341,6 @@ class _CartPageState extends State<CartPage> {
                   ],
                 ),
                 const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Tax (11%)',
-                      style: TextStyle(color: Colors.grey[600], fontSize: 13),
-                    ),
-                    Text(
-                      '(Rp ${tax.toStringAsFixed(0)})',
-                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-                    ),
-                  ],
-                ),
                 const SizedBox(height: 16),
                 const Divider(),
                 const SizedBox(height: 12),
@@ -415,8 +401,7 @@ class _CartPageState extends State<CartPage> {
     final selectedItems = cartProvider.cartItems.where((item) => item.isSelected).toList();
     double subtotal = selectedItems.fold(0, (sum, item) => sum + item.totalPrice);
     double discount = subtotal * (_discountPercentage / 100);
-    double tax = (subtotal - discount) * 0.11;
-    double total = subtotal - discount + tax;
+    double total = subtotal - discount;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
@@ -538,13 +523,6 @@ class _CartPageState extends State<CartPage> {
                   ],
                 ),
                 const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('Tax (11%)', style: TextStyle(color: Colors.grey[600])),
-                    Text('+ Rp ${tax.toStringAsFixed(0)}'),
-                  ],
-                ),
                 const SizedBox(height: 16),
                 const Divider(),
                 const SizedBox(height: 12),
