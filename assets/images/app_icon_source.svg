@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Background gradient -->
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#A8D5F2;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#7DB3E8;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#5EA3D6;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Icon gradient -->
+    <linearGradient id="iconGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#3B5BA5;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1E3A8A;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- S letter gradient -->
+    <linearGradient id="letterGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#2E4A8C;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1E3A8A;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Shadow -->
+    <filter id="dropShadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-opacity="0.4"/>
+    </filter>
+    
+    <!-- Inner glow -->
+    <filter id="innerGlow">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Background with gradient -->
+  <rect width="512" height="512" fill="url(#bgGradient)"/>
+  
+  <!-- Subtle radial light effect -->
+  <radialGradient id="lightEffect">
+    <stop offset="0%" style="stop-color:#FFFFFF;stop-opacity:0.3" />
+    <stop offset="100%" style="stop-color:#FFFFFF;stop-opacity:0" />
+  </radialGradient>
+  <circle cx="256" cy="200" r="180" fill="url(#lightEffect)"/>
+  
+  <!-- Top box with shadow and rounded corners -->
+  <rect x="90" y="80" width="200" height="160" fill="url(#bgGradient)" 
+        rx="20" filter="url(#dropShadow)" opacity="0.9"/>
+  
+  <!-- Letter S with gradient and glow -->
+  <g transform="translate(190, 160)" filter="url(#innerGlow)">
+    <path d="M -50,-60 L 50,-60 L 50,-40 L -30,-40 L -30,-20 L 45,-20 L 45,0 L -30,0 L -30,20 L 50,20 L 50,40 L -50,40 L -50,20 L 30,20 L 30,0 L -45,0 L -45,-20 L 30,-20 L 30,-40 L -50,-40 Z" 
+          fill="url(#letterGrad)"/>
+  </g>
+  
+  <!-- Connector with gradient -->
+  <rect x="175" y="240" width="50" height="40" fill="url(#iconGrad)" rx="8"/>
+  
+  <!-- Bottom box with shadow -->
+  <rect x="60" y="280" width="270" height="140" fill="url(#iconGrad)" 
+        rx="20" filter="url(#dropShadow)"/>
+  
+  <!-- White detail with glow -->
+  <rect x="165" y="320" width="50" height="40" fill="#FFFFFF" 
+        rx="6" filter="url(#innerGlow)" opacity="0.95"/>
+  
+  <!-- Decorative coin elements -->
+  <circle cx="380" cy="380" r="25" fill="#FFD54F" opacity="0.7" filter="url(#innerGlow)"/>
+  <circle cx="360" cy="360" r="18" fill="#F4C430" opacity="0.6" filter="url(#innerGlow)"/>
+  
+  <!-- Highlight shine on top -->
+  <ellipse cx="150" cy="110" rx="60" ry="25" fill="#FFFFFF" opacity="0.25"/>
+</svg>

@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 400" width="300" height="400">
+  <defs>
+    <!-- Gradients for modern look -->
+    <linearGradient id="topBoxGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#A8D5F2;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#7DB3E8;stop-opacity:1" />
+    </linearGradient>
+    
+    <linearGradient id="bottomBoxGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#2E4A8C;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1E3A8A;stop-opacity:1" />
+    </linearGradient>
+    
+    <linearGradient id="sGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#2E4A8C;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1E3A8A;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Shadow filter -->
+    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-opacity="0.3"/>
+    </filter>
+    
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Top box with gradient and shadow -->
+  <rect x="88" y="10" width="164" height="130" fill="url(#topBoxGrad)" 
+        rx="8" filter="url(#shadow)"/>
+  
+  <!-- Letter S with gradient -->
+  <g transform="translate(170, 75)" filter="url(#glow)">
+    <path d="M -40,-50 L 40,-50 L 40,-35 L -25,-35 L -25,-20 L 35,-20 L 35,-5 L -25,-5 L -25,10 L 40,10 L 40,25 L -40,25 L -40,10 L 25,10 L 25,-5 L -35,-5 L -35,-20 L 25,-20 L 25,-35 L -40,-35 Z" 
+          fill="url(#sGrad)"/>
+  </g>
+  
+  <!-- Connector bar with gradient -->
+  <rect x="148" y="140" width="40" height="30" fill="url(#sGrad)" rx="4"/>
+  
+  <!-- Bottom box with gradient and shadow -->
+  <rect x="80" y="145" width="175" height="95" fill="url(#bottomBoxGrad)" 
+        rx="8" filter="url(#shadow)"/>
+  
+  <!-- White rectangle with subtle shadow -->
+  <rect x="155" y="175" width="30" height="25" fill="#FFFFFF" 
+        rx="3" filter="url(#shadow)" opacity="0.95"/>
+  
+  <!-- Enhanced text with gradient -->
+  <defs>
+    <linearGradient id="superGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#FFD54F;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#F4C430;stop-opacity:1" />
+    </linearGradient>
+    
+    <linearGradient id="cashierGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#FF6AB3;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#E94B9C;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Text with shadow -->
+  <text x="5" y="280" font-family="'Poppins', Arial, sans-serif" 
+        font-size="60" font-weight="bold" font-style="italic" 
+        fill="url(#superGrad)" filter="url(#shadow)">Super</text>
+  <text x="165" y="280" font-family="'Poppins', Arial, sans-serif" 
+        font-size="60" font-weight="bold" font-style="italic" 
+        fill="url(#cashierGrad)" filter="url(#shadow)">Cashier</text>
+  
+  <!-- Subtle shine effect on top box -->
+  <ellipse cx="130" cy="30" rx="40" ry="15" fill="#FFFFFF" opacity="0.2"/>
+  
+  <!-- Small decorative elements (coins/money icon hints) -->
+  <circle cx="260" cy="210" r="8" fill="#FFD54F" opacity="0.6" filter="url(#glow)"/>
+  <circle cx="245" cy="195" r="6" fill="#F4C430" opacity="0.5" filter="url(#glow)"/>
+</svg>

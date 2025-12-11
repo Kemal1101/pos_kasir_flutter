@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SuperCashier Icon Generator</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            max-width: 600px;
+        }
+        h1 { color: #673AB7; }
+        canvas {
+            border: 2px solid #ddd;
+            margin: 20px 0;
+            display: block;
+        }
+        button {
+            background: #673AB7;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #5E35B1;
+        }
+        .info {
+            background: #E3F2FD;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 SuperCashier Icon Generator</h1>
+        <p>Generate app icon untuk SuperCashier POS dalam berbagai ukuran.</p>
+        
+        <div class="info">
+            <strong>📱 Ukuran yang tersedia:</strong>
+            <ul>
+                <li>512x512 px (Android/iOS)</li>
+                <li>1024x1024 px (iOS App Store)</li>
+                <li>192x192 px (Web)</li>
+            </ul>
+        </div>
+
+        <canvas id="iconCanvas"></canvas>
+        
+        <div>
+            <button onclick="generateIcon(512)">Download 512x512</button>
+            <button onclick="generateIcon(1024)">Download 1024x1024</button>
+            <button onclick="generateIcon(192)">Download 192x192</button>
+        </div>
+
+        <div class="info" style="margin-top: 20px;">
+            <strong>📝 Cara pakai:</strong>
+            <ol>
+                <li>Klik tombol ukuran yang diinginkan</li>
+                <li>Simpan file sebagai <code>app_icon.png</code></li>
+                <li>Letakkan di folder <code>assets/images/</code></li>
+                <li>Jalankan <code>dart run flutter_launcher_icons</code></li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        function drawIcon(canvas, size) {
+            const ctx = canvas.getContext('2d');
+            canvas.width = size;
+            canvas.height = size;
+            
+            // Background gradient with modern colors
+            const bgGradient = ctx.createLinearGradient(0, 0, size, size);
+            bgGradient.addColorStop(0, '#A8D5F2');
+            bgGradient.addColorStop(0.5, '#7DB3E8');
+            bgGradient.addColorStop(1, '#5EA3D6');
+            ctx.fillStyle = bgGradient;
+            ctx.fillRect(0, 0, size, size);
+            
+            // Radial light effect
+            const lightGrad = ctx.createRadialGradient(size/2, size*0.4, 0, size/2, size*0.4, size*0.35);
+            lightGrad.addColorStop(0, 'rgba(255,255,255,0.3)');
+            lightGrad.addColorStop(1, 'rgba(255,255,255,0)');
+            ctx.fillStyle = lightGrad;
+            ctx.fillRect(0, 0, size, size);
+            
+            // Shadow helper function
+            const addShadow = (blur = 12, offsetY = 8) => {
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+                ctx.shadowBlur = blur;
+                ctx.shadowOffsetX = 0;
+                ctx.shadowOffsetY = offsetY;
+            };
+            
+            const clearShadow = () => {
+                ctx.shadowColor = 'transparent';
+                ctx.shadowBlur = 0;
+                ctx.shadowOffsetX = 0;
+                ctx.shadowOffsetY = 0;
+            };
+            
+            // Top box with gradient and rounded corners
+            addShadow();
+            const topGrad = ctx.createLinearGradient(0, size*0.15, 0, size*0.45);
+            topGrad.addColorStop(0, '#A8D5F2');
+            topGrad.addColorStop(1, '#7DB3E8');
+            ctx.fillStyle = topGrad;
+            const topBoxRadius = size * 0.04;
+            ctx.beginPath();
+            ctx.roundRect(size*0.175, size*0.155, size*0.39, size*0.31, topBoxRadius);
+            ctx.fill();
+            clearShadow();
+            
+            // Letter S with gradient
+            const sGrad = ctx.createLinearGradient(size*0.25, size*0.2, size*0.48, size*0.42);
+            sGrad.addColorStop(0, '#2E4A8C');
+            sGrad.addColorStop(1, '#1E3A8A');
+            ctx.fillStyle = sGrad;
+            
+            const sX = size * 0.37;
+            const sY = size * 0.31;
+            const sW = size * 0.2;
+            const sH = size * 0.04;
+            
+            // S shape with proper proportions
+            ctx.fillRect(sX - sW/2, sY - sH*3, sW, sH); // Top
+            ctx.fillRect(sX - sW/2, sY - sH*2, sH*0.6, sH); // Top left
+            ctx.fillRect(sX - sW/2, sY - sH, sW, sH); // Middle
+            ctx.fillRect(sX + sW/2 - sH*0.6, sY, sH*0.6, sH); // Bottom right
+            ctx.fillRect(sX - sW/2, sY + sH, sW, sH); // Bottom
+            
+            // Connector bar with gradient
+            addShadow(8, 4);
+            const connGrad = ctx.createLinearGradient(0, size*0.47, 0, size*0.55);
+            connGrad.addColorStop(0, '#3B5BA5');
+            connGrad.addColorStop(1, '#1E3A8A');
+            ctx.fillStyle = connGrad;
+            const connRadius = size * 0.015;
+            ctx.beginPath();
+            ctx.roundRect(size*0.342, size*0.47, size*0.098, size*0.078, connRadius);
+            ctx.fill();
+            clearShadow();
+            
+            // Bottom box with gradient
+            addShadow();
+            const bottomGrad = ctx.createLinearGradient(0, size*0.547, 0, size*0.82);
+            bottomGrad.addColorStop(0, '#3B5BA5');
+            bottomGrad.addColorStop(1, '#1E3A8A');
+            ctx.fillStyle = bottomGrad;
+            const bottomRadius = size * 0.04;
+            ctx.beginPath();
+            ctx.roundRect(size*0.117, size*0.547, size*0.527, size*0.273, bottomRadius);
+            ctx.fill();
+            clearShadow();
+            
+            // White rectangle with subtle glow
+            addShadow(6, 2);
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+            const whiteRadius = size * 0.012;
+            ctx.beginPath();
+            ctx.roundRect(size*0.322, size*0.625, size*0.098, size*0.078, whiteRadius);
+            ctx.fill();
+            clearShadow();
+            
+            // Decorative coin elements
+            const coinGrad1 = ctx.createRadialGradient(size*0.742, size*0.742, 0, size*0.742, size*0.742, size*0.049);
+            coinGrad1.addColorStop(0, '#FFD54F');
+            coinGrad1.addColorStop(1, 'rgba(255, 213, 79, 0.4)');
+            ctx.fillStyle = coinGrad1;
+            ctx.beginPath();
+            ctx.arc(size*0.742, size*0.742, size*0.049, 0, Math.PI * 2);
+            ctx.fill();
+            
+            const coinGrad2 = ctx.createRadialGradient(size*0.703, size*0.703, 0, size*0.703, size*0.703, size*0.035);
+            coinGrad2.addColorStop(0, '#F4C430');
+            coinGrad2.addColorStop(1, 'rgba(244, 196, 48, 0.3)');
+            ctx.fillStyle = coinGrad2;
+            ctx.beginPath();
+            ctx.arc(size*0.703, size*0.703, size*0.035, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Top highlight shine
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
+            ctx.beginPath();
+            ctx.ellipse(size*0.293, size*0.215, size*0.117, size*0.049, 0, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function generateIcon(size) {
+            const canvas = document.getElementById('iconCanvas');
+            drawIcon(canvas, size);
+            
+            // Download
+            const link = document.createElement('a');
+            link.download = `app_icon_${size}x${size}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+
+        // Draw initial preview
+        window.onload = () => {
+            const canvas = document.getElementById('iconCanvas');
+            drawIcon(canvas, 512);
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+# Konfigurasi untuk Flutter Launcher Icons
+# Generate icon untuk Android dan iOS
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/app_icon.png"
+  # Untuk sementara tidak pakai adaptive icon foreground dulu
+  # adaptive_icon_foreground: "assets/images/app_icon_foreground.png"
+  adaptive_icon_background: "#7DB3E8"
+  
+  # Untuk Android
+  min_sdk_android: 21
+  
+  # Untuk iOS
+  remove_alpha_ios: true
+  
+  # Web (opsional)
+  web:
+    generate: true
+    image_path: "assets/images/app_icon.png"
+    background_color: "#7DB3E8"
+    theme_color: "#673AB7"
+  
+  # Windows (opsional)
+  windows:
+    generate: true
+    image_path: "assets/images/app_icon.png"
+    icon_size: 48
