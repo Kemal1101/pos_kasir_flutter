@@ -5,11 +5,18 @@ import 'auth_interceptor.dart';
 class DioClient {
   final Dio dio = Dio(
     BaseOptions(
-      baseUrl: "http://supercashier.my.id/api",
+      baseUrl: "https://supercashier.my.id/api",
       connectTimeout: const Duration(seconds: 10),
       receiveTimeout: const Duration(seconds: 10),
       headers: {
         'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+      // Jangan follow redirect otomatis - handle manual
+      followRedirects: false,
+      validateStatus: (status) {
+        // Terima semua status untuk dihandle manual
+        return status != null && status < 500;
       },
     ),
   );

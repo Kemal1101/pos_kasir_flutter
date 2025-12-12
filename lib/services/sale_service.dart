@@ -129,6 +129,74 @@ class SaleService {
     }
   }
 
+  /// Update item quantity in sale
+  /// Since backend doesn't have update endpoint, we remove and re-add with new quantity
+  Future<Map<String, dynamic>> updateItemQuantity({
+    required int saleId,
+    required int saleItemId,
+    required int productId,
+    required int newQuantity,
+  }) async {
+    try {
+      // Step 1: Remove existing item
+      final removeResponse = await dioClient.dio.delete(
+        '/sales/items/$saleItemId',
+      );
+
+      if (removeResponse.statusCode != 200) {
+        return {
+          'success': false,
+          'message': removeResponse.data['message'] ?? 'Failed to update quantity',
+        };
+      }
+
+      // Step 2: Add item with new quantity
+      final addResponse = await dioClient.dio.post(
+        '/sales/items',
+        data: {
+          'sale_id': saleId,
+          'product_id': productId,
+          'quantity': newQuantity,
+          'discount_amount': 0,
+        },
+      );
+
+      if (addResponse.statusCode == 200) {
+        final data = addResponse.data['data'];
+        return {
+          'success': true,
+          'sale': Sale.fromJson(data),
+        };
+      }
+
+      return {
+        'success': false,
+        'message': addResponse.data['message'] ?? 'Failed to update quantity',
+      };
+    } on DioException catch (e) {
+      // Handle validation errors (e.g., insufficient stock)
+      if (e.response?.statusCode == 422) {
+        final errors = e.response?.data['errors'];
+        if (errors != null && errors['quantity'] != null) {
+          return {
+            'success': false,
+            'message': errors['quantity'][0],
+          };
+        }
+      }
+
+      return {
+        'success': false,
+        'message': e.response?.data['message'] ?? 'Failed to update quantity',
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'An error occurred: ${e.toString()}',
+      };
+    }
+  }
+
   /// Get sale details with items
   Future<Map<String, dynamic>> getSale(int saleId) async {
     try {

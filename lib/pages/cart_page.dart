@@ -151,7 +151,7 @@ class _CartPageState extends State<CartPage> {
                               children: [
                                 InkWell(
                                   onTap: item.quantity > 1
-                                      ? () => cartProvider.decreaseQty(index)
+                                      ? () => cartProvider.decreaseQuantity(index)
                                       : null,
                                   child: Padding(
                                     padding: const EdgeInsets.all(4),
@@ -175,7 +175,7 @@ class _CartPageState extends State<CartPage> {
                                   ),
                                 ),
                                 InkWell(
-                                  onTap: () => cartProvider.increaseQty(index),
+                                  onTap: () => cartProvider.increaseQuantity(index),
                                   child: Padding(
                                     padding: const EdgeInsets.all(4),
                                     child: Icon(

@@ -16,6 +16,16 @@ class _CatalogScreenState extends State<CatalogScreen> {
   String _selectedCategory = 'All'; // Track selected category
   final TextEditingController _searchController = TextEditingController();
 
+  // Mapping category name to category_id from database
+  final Map<String, int?> _categoryIdMap = {
+    'All': null,
+    'Sembako': 1,
+    'Minuman': 2,
+    'Snack': 3,
+    'Kebutuhan Rumah': 4,
+    'Perawatan Pribadi': 5,
+  };
+
   String _formatCurrency(double amount) {
     final formatter = amount.toStringAsFixed(0);
     return formatter.replaceAllMapped(
@@ -31,6 +41,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
       setState(() {
         _searchQuery = _searchController.text;
       });
+      // Search dilakukan di client-side, tidak perlu hit API
     });
     
     // Fetch products from API when screen loads
@@ -127,6 +138,10 @@ class _CatalogScreenState extends State<CatalogScreen> {
                           setState(() {
                             _selectedCategory = category;
                           });
+                          // Fetch products with category filter from API
+                          final cartProvider = context.read<CartProvider>();
+                          final categoryId = _categoryIdMap[category];
+                          cartProvider.fetchProducts(categoryId: categoryId);
                         },
                       ),
                     );
@@ -171,13 +186,12 @@ class _CatalogScreenState extends State<CatalogScreen> {
                     );
                   }
 
+                  // Filter search di client-side (backend tidak support search parameter)
                   final List<Product> filteredProducts = cart.catalog.where((p) {
                     final matchesSearch = p.name.toLowerCase().contains(_searchQuery.toLowerCase());
-                    final matchesCategory = _selectedCategory == 'All' || p.category == _selectedCategory;
-                    return matchesSearch && matchesCategory;
+                    return matchesSearch;
                   }).toList();
 
-                  // Gunakan List untuk semua mode (landscape maupun portrait)
                   return _buildProductList(context, cart, filteredProducts);
                 },
               ),

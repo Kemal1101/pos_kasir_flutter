@@ -12,42 +12,82 @@ class AuthService {
         data: {'email': email, 'password': password},
       );
 
+      // Handle redirect response (302/301) - ini berarti kredensial salah
+      if (response.statusCode == 302 || response.statusCode == 301) {
+        return {
+          'success': false,
+          'meta': {'status': 401, 'message': 'Email atau password salah'},
+          'message': 'Email atau password salah. Silakan coba lagi.',
+          'data': null,
+        };
+      }
+
+      // Cek jika response adalah JSON
+      if (response.data is! Map<String, dynamic>) {
+        return {
+          'success': false,
+          'meta': {'status': 500, 'message': 'Respons server tidak valid'},
+          'message': 'Login gagal. Server mengembalikan format yang tidak sesuai.',
+          'data': null,
+        };
+      }
+
       // Data utama (body respons JSON)
       final responseData = response.data as Map<String, dynamic>;
+
+      // Validasi struktur response
+      if (responseData['data'] == null) {
+        return {
+          'success': false,
+          'meta': {'status': 500, 'message': 'Data tidak ditemukan di response'},
+          'message': 'Login gagal. Format response tidak valid.',
+          'data': null,
+        };
+      }
 
       // Ambil data dari key 'data'
       final userData = responseData['data'] as Map<String, dynamic>?;
 
-      // Ambil role_id dari 'data.user.role_id'
-      final String? roleId = userData?['user']?['role_id'] as String?;
+      // Ambil role_id dengan safe parsing (bisa int atau string)
+      dynamic rawRoleId = userData?['user']?['role_id'];
+      String? roleId;
+      if (rawRoleId != null) {
+        roleId = rawRoleId.toString();
+      }
 
       // --- Simpan token ---
-      final String? accessToken = userData?['access_token'];
+      final accessToken = userData?['access_token'];
       if (accessToken != null) {
         SharedPreferences prefs = await SharedPreferences.getInstance();
-        // Simpan access_token, bukan data['token']
-        await prefs.setString('token', accessToken);
+        await prefs.setString('token', accessToken.toString());
       }
 
       // --- MENGEMBALIKAN STRUKTUR LENGKAP UNTUK CONTROLLER ---
-      // AuthController memerlukan 'meta' dan 'data.user.role_id' yang dilewatkan.
-
       return {
-        // Status dari Dio/HTTP
         'success': true,
-        // Meta data harus dilewatkan untuk pesan dan status code
-        'meta': responseData['meta'],
-        // Data lengkap untuk otorisasi role di controller
+        'meta': responseData['meta'] ?? {'status': 200, 'message': 'Login berhasil'},
         'data': responseData['data'],
-        // Secara opsional, lewati role_id yang sudah diekstrak untuk akses cepat (role_id)
         'role_id_ekstrak': roleId,
-        'message': responseData['meta']['message'] ?? "Login berhasil.",
+        'message': responseData['meta']?['message'] ?? "Login berhasil.",
       };
     } on DioException catch (e) {
-      // Menangani error HTTP/Dio (misalnya 401 Unauthorized)
-      final message =
-          e.response?.data?['meta']?['message'] ??
-          "Login gagal. Cek kredensial.";
+      // Handle redirect (302, 301, etc) di DioException juga
+      if (e.response?.statusCode == 302 || e.response?.statusCode == 301) {
+        return {
+          'success': false,
+          'meta': {'status': 401, 'message': 'Email atau password salah'},
+          'message': 'Email atau password salah. Silakan coba lagi.',
+          'data': null,
+        };
+      }
+
+      // Cek apakah response data adalah JSON
+      String message = "Login gagal. Cek kredensial.";
+      if (e.response?.data is Map<String, dynamic>) {
+        message = e.response?.data?['meta']?['message'] ?? 
+                  e.response?.data?['message'] ?? 
+                  message;
+      }
 
       return {
         'success': false,
@@ -59,8 +99,8 @@ class AuthService {
       // Menangani error lain (misalnya parsing)
       return {
         'success': false,
-        'meta': {'status': 500, 'message': "Terjadi kesalahan umum: $e"},
-        'message': "Terjadi kesalahan umum. Coba lagi.",
+        'meta': {'status': 500, 'message': "Terjadi kesalahan: $e"},
+        'message': "Terjadi kesalahan. Coba lagi.",
         'data': null,
       };
     }

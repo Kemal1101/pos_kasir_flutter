@@ -106,12 +106,89 @@ class CartProvider with ChangeNotifier {
     String sizeColor, {
     int quantity = 1,
   }) async {
+    print('[ADD-PRODUCT] Request to add ${product.name} with qty: $quantity');
+    print('[ADD-PRODUCT] Current cart items count: ${_items.length}');
+    print('[ADD-PRODUCT] Current sale: ${_currentSale?.saleId}');
+    
     // Ensure we have an active sale
     if (_currentSale == null) {
+      print('[ADD-PRODUCT] No current sale, creating new one...');
       final initialized = await initializeSale();
       if (!initialized) return false;
+    } else if (_items.isEmpty) {
+      // If cart is empty but sale exists, it means sale was likely deleted
+      // Create a new sale instead of refreshing
+      print('[ADD-PRODUCT] Cart is empty but sale exists, creating new sale...');
+      _currentSale = null;
+      final initialized = await initializeSale();
+      if (!initialized) return false;
+    } else {
+      print('[ADD-PRODUCT] Using existing sale_id: ${_currentSale!.saleId}');
+      // Only refresh if cart has items
+      await _refreshCurrentSale();
+      print('[ADD-PRODUCT] After refresh, cart items count: ${_items.length}');
     }
 
+    // Check if product already exists in cart
+    final existingIndex = _items.indexWhere(
+      (item) => item.product.productId == product.productId,
+    );
+
+    print('[ADD-PRODUCT] Existing index for product_id ${product.productId}: $existingIndex');
+    
+    if (existingIndex >= 0) {
+      // Product exists - increment the existing item's quantity
+      final existingItem = _items[existingIndex];
+      print('[ADD-PRODUCT] Product ${product.name} already exists in cart');
+      print('[ADD-PRODUCT] Existing item qty: ${existingItem.quantity}, sale_item_id: ${existingItem.saleItemId}');
+      
+      final newQuantity = existingItem.quantity + quantity;
+      print('[ADD-PRODUCT] Calculated new quantity: ${existingItem.quantity} + $quantity = $newQuantity');
+      
+      if (existingItem.saleItemId == null) {
+        print('[ADD-PRODUCT ERROR] Existing item has no saleItemId');
+        return false;
+      }
+
+      // Strategy: Delete old item, then add with new total quantity
+      print('[INCREMENT] Deleting sale_item_id: ${existingItem.saleItemId}, then add with qty: $newQuantity');
+      
+      _isProcessing = true;
+      notifyListeners();
+
+      // Step 1: Delete existing item
+      final deleteResult = await _saleService.removeItem(existingItem.saleItemId!);
+      if (!deleteResult['success']) {
+        _isProcessing = false;
+        _errorMessage = deleteResult['message'];
+        notifyListeners();
+        return false;
+      }
+
+      // Step 2: Add with new quantity
+      final addResult = await _saleService.addItem(
+        saleId: _currentSale!.saleId,
+        productId: product.productId,
+        quantity: newQuantity,
+        discountAmount: 0,
+      );
+
+      _isProcessing = false;
+
+      if (addResult['success']) {
+        _currentSale = addResult['sale'] as Sale;
+        _syncCartFromSale();
+        notifyListeners();
+        return true;
+      } else {
+        _errorMessage = addResult['message'];
+        notifyListeners();
+        return false;
+      }
+    }
+
+    // Product doesn't exist, add new item
+    print('[ADD-PRODUCT] Adding new product ${product.name} to cart (qty: $quantity)');
     _isProcessing = true;
     _errorMessage = null;
     notifyListeners();
@@ -137,8 +214,22 @@ class CartProvider with ChangeNotifier {
     }
   }
 
+
+  /// Refresh current sale data from backend
+  Future<void> _refreshCurrentSale() async {
+    if (_currentSale == null) return;
+
+    final result = await _saleService.getSale(_currentSale!.saleId);
+    if (result['success']) {
+      _currentSale = result['sale'] as Sale;
+      _syncCartFromSale();
+    }
+  }
+
   /// Remove item from cart via API
   Future<bool> removeItemFromSale(int saleItemId) async {
+    print('[API] Deleting sale_item_id: $saleItemId from backend...');
+    
     _isProcessing = true;
     _errorMessage = null;
     notifyListeners();
@@ -148,21 +239,33 @@ class CartProvider with ChangeNotifier {
     _isProcessing = false;
 
     if (result['success']) {
+      print('[API] Successfully deleted sale_item_id: $saleItemId');
       _currentSale = result['sale'] as Sale;
       _syncCartFromSale();
       
+      print('[CHECK] Cart items count after delete: ${_items.length}');
+      print('[CHECK] Current sale status: ${_currentSale?.paymentStatus}');
+      
       // Auto-delete sale ONLY if it's still in draft status and cart is empty
       if (_items.isEmpty && _currentSale != null && _currentSale!.paymentStatus == 'draft') {
-        print('Cart is empty, auto-deleting draft sale ${_currentSale!.saleId}');
+        print('[AUTO-DELETE] Cart is empty, deleting draft sale_id: ${_currentSale!.saleId}');
         final deleted = await clearSale();
-        if (deleted && onSaleAutoDeleted != null) {
-          onSaleAutoDeleted!();
+        if (deleted) {
+          print('[AUTO-DELETE] Sale successfully deleted. _currentSale is now: $_currentSale');
+          if (onSaleAutoDeleted != null) {
+            onSaleAutoDeleted!();
+          }
+        } else {
+          print('[AUTO-DELETE ERROR] Failed to delete sale');
         }
+      } else {
+        print('[SKIP AUTO-DELETE] Items: ${_items.length}, Sale: ${_currentSale?.saleId}, Status: ${_currentSale?.paymentStatus}');
       }
       
       notifyListeners();
       return true;
     } else {
+      print('[API ERROR] Failed to delete sale_item_id: $saleItemId - ${result['message']}');
       _errorMessage = result['message'];
       notifyListeners();
       return false;
@@ -173,7 +276,23 @@ class CartProvider with ChangeNotifier {
   void _syncCartFromSale() {
     _items.clear();
     if (_currentSale?.items != null) {
+      // Group items by product_id to handle potential duplicates from backend
+      final Map<int, SaleItem> uniqueItems = {};
+      
       for (var saleItem in _currentSale!.items!) {
+        final productId = saleItem.productId;
+        
+        if (uniqueItems.containsKey(productId)) {
+          // If duplicate exists, just keep the latest one (should not happen normally)
+          print('WARNING: Duplicate sale_item found for product_id: $productId - keeping latest');
+          uniqueItems[productId] = saleItem;
+        } else {
+          uniqueItems[productId] = saleItem;
+        }
+      }
+      
+      // Now create CartItems from unique sale items
+      for (var saleItem in uniqueItems.values) {
         // Find product in catalog
         final product = _catalog.firstWhere(
           (p) => p.productId == saleItem.productId,
@@ -248,6 +367,10 @@ class CartProvider with ChangeNotifier {
       // Clear cart and reset current sale after successful payment
       _items.clear();
       _currentSale = null; // Reset to allow new sale
+      
+      // Refresh products to update stock after sale
+      fetchProducts();
+      
       notifyListeners();
       return {
         'success': true,
@@ -266,15 +389,20 @@ class CartProvider with ChangeNotifier {
 
   /// Clear current sale (delete draft)
   Future<bool> clearSale() async {
-    if (_currentSale == null) return true;
+    if (_currentSale == null) {
+      print('[CLEAR-SALE] No current sale to clear');
+      return true;
+    }
 
     if (_currentSale!.paymentStatus != 'draft') {
-      print('Warning: Cannot delete sale ${_currentSale!.saleId} - status is ${_currentSale!.paymentStatus}');
+      print('[CLEAR-SALE ERROR] Cannot delete sale ${_currentSale!.saleId} - status is ${_currentSale!.paymentStatus}');
       _errorMessage = 'Cannot delete completed sales';
       notifyListeners();
       return false;
     }
 
+    print('[CLEAR-SALE] Deleting draft sale_id: ${_currentSale!.saleId}');
+    
     _isProcessing = true;
     _errorMessage = null;
     notifyListeners();
@@ -284,11 +412,13 @@ class CartProvider with ChangeNotifier {
     _isProcessing = false;
 
     if (result['success']) {
+      print('[CLEAR-SALE SUCCESS] Sale deleted. Setting _currentSale to null');
       _currentSale = null;
       _items.clear();
       notifyListeners();
       return true;
     } else {
+      print('[CLEAR-SALE ERROR] Failed to delete: ${result['message']}');
       _errorMessage = result['message'];
       notifyListeners();
       return false;
@@ -304,24 +434,7 @@ class CartProvider with ChangeNotifier {
     }
   }
 
-  void increaseQty(int index) {
-    if (index >= 0 && index < _items.length) {
-      _items[index].quantity++;
-      notifyListeners();
-    }
-  }
-
-  void decreaseQty(int index) {
-    if (index >= 0 && index < _items.length) {
-      if (_items[index].quantity > 1) {
-        _items[index].quantity--;
-      } else {
-        _items.removeAt(index);
-      }
-      notifyListeners();
-    }
-  }
-
+  // Local methods (kept for backward compatibility if needed)
   void removeItem(int index) {
     if (index >= 0 && index < _items.length) {
       _items.removeAt(index);
@@ -331,16 +444,23 @@ class CartProvider with ChangeNotifier {
 
   /// Delete item from cart via API by index
   Future<bool> deleteItem(int index) async {
-    if (index < 0 || index >= _items.length) return false;
+    if (index < 0 || index >= _items.length) {
+      print('[DELETE] Invalid index: $index');
+      return false;
+    }
     
     final item = _items[index];
+    print('[DELETE] Deleting item at index $index: ${item.product.name} (qty: ${item.quantity})');
+    
     if (item.saleItemId == null) {
+      print('[DELETE] No saleItemId, removing locally only');
       // If no saleItemId, just remove locally
       _items.removeAt(index);
       notifyListeners();
       return true;
     }
     
+    print('[DELETE] Calling API to delete sale_item_id: ${item.saleItemId}');
     // Call API to delete
     return await removeItemFromSale(item.saleItemId!);
   }
@@ -350,10 +470,66 @@ class CartProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  void updateQuantity(int index, int newQuantity) {
-    if (index >= 0 && index < _items.length && newQuantity > 0) {
-      _items[index].quantity = newQuantity;
+  /// Update item quantity via API
+  Future<bool> updateQuantity(int index, int newQuantity) async {
+    if (index < 0 || index >= _items.length || newQuantity <= 0) return false;
+    
+    final item = _items[index];
+    if (_currentSale == null || item.saleItemId == null) return false;
+
+    _isProcessing = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    final result = await _saleService.updateItemQuantity(
+      saleId: _currentSale!.saleId,
+      saleItemId: item.saleItemId!,
+      productId: item.product.productId,
+      newQuantity: newQuantity,
+    );
+
+    _isProcessing = false;
+
+    if (result['success']) {
+      _currentSale = result['sale'] as Sale;
+      _syncCartFromSale();
       notifyListeners();
+      return true;
+    } else {
+      _errorMessage = result['message'];
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Increase quantity via API
+  Future<void> increaseQuantity(int index) async {
+    if (index >= 0 && index < _items.length) {
+      final currentQty = _items[index].quantity;
+      await updateQuantity(index, currentQty + 1);
+    }
+  }
+
+  /// Decrease quantity via API
+  Future<void> decreaseQuantity(int index) async {
+    if (index >= 0 && index < _items.length) {
+      final item = _items[index];
+      final currentQty = item.quantity;
+      
+      print('[DECREASE] Item: ${item.product.name}, current qty: $currentQty, index: $index');
+      
+      if (currentQty <= 1) {
+        // If quantity is 1 or less, delete the item completely
+        print('[DECREASE] Quantity is $currentQty (<=1), will DELETE item (sale_item_id: ${item.saleItemId})');
+        final deleted = await deleteItem(index);
+        print('[DECREASE] Delete result: $deleted');
+      } else {
+        // Update to new quantity
+        print('[DECREASE] Updating quantity from $currentQty to ${currentQty - 1}');
+        await updateQuantity(index, currentQty - 1);
+      }
+    } else {
+      print('[DECREASE ERROR] Invalid index: $index (items length: ${_items.length})');
     }
   }
 
@@ -362,8 +538,4 @@ class CartProvider with ChangeNotifier {
     _currentSale = null;
     notifyListeners();
   }
-
-  // Aliases for compatibility
-  void increaseQuantity(int index) => increaseQty(index);
-  void decreaseQuantity(int index) => decreaseQty(index);
 }

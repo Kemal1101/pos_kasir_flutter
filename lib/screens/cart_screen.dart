@@ -291,7 +291,8 @@ class CartScreen extends StatelessWidget {
               if (newQuantity != null && newQuantity > 0) {
                 cart.updateQuantity(index, newQuantity);
               } else if (newQuantity != null && newQuantity <= 0) {
-                cart.removeItem(index);
+                // Delete item if quantity is 0 or less
+                cart.deleteItem(index);
               }
             },
           ),
@@ -385,6 +386,7 @@ class CartScreen extends StatelessWidget {
                   );
 
                   if (paymentSuccess == true && context.mounted) {
+                    // Products already refreshed by CartProvider.completeSale()
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text('✅ Pembayaran berhasil! Terima kasih.'),

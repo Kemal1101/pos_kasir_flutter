@@ -139,10 +139,10 @@ class Product {
 
   static const List<String> categories = [
     'All',
-    'Minuman',
     'Sembako',
+    'Minuman',
+    'Snack',
     'Kebutuhan Rumah',
     'Perawatan Pribadi',
-    'Snack',
   ];
 }
